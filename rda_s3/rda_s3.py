@@ -128,6 +128,11 @@ def get_parser():
             aliases=['gm'],
             help='Get Metadata of object',
             description='Get Metadata of an object')
+    meta_parser.add_argument('--key', '-k',
+            type=str,
+            metavar='<key>',
+            required=True,
+            help="Key from which to retrieve metadata.")
 
     return parser
 
