@@ -276,7 +276,8 @@ def do_action(args):
         None ## Maybe returns (str) or (dict)?
     """
     # Init Session
-    global client = get_session(args.use_local_config)
+    global client
+    client = get_session(args.use_local_config)
 
     func_map = get_action_map()
     command = args.command
