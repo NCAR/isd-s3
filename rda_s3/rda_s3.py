@@ -3,8 +3,23 @@
 
 Usage:
 ```
-TODO:
-    get using tool -h
+>>> rda_s3.py -h
+CLI to interact with s3.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --noprint, -np        Do not print result of actions.
+  --use_local_config USE_LOCAL_CONFIG, -ul USE_LOCAL_CONFIG
+                        Use your local credentials. (~/.aws/credentials)
+
+Actions:
+  {list_buckets,lb,delete,dl,upload,ul,list_objects,lo,get_metadata,gm}
+                        Use `tool [command] -h` for more info on command
+    list_buckets (lb)   lists Buckets
+    delete (dl)         Delete objects
+    upload (ul)         Upload objects
+    list_objects (lo)   List objects
+    get_metadata (gm)   Get Metadata of object
 ```
 """
 
@@ -137,24 +152,63 @@ def get_parser():
     return parser
 
 def list_buckets():
-    """Lists all buckets"""
+    """Lists all buckets.
+
+    Returns:
+        (list) : list of buckets.
+    """
     pass
 
 def list_objects(bucket, _glob=None):
-    """Lists objects from a bucket, optionally matching _glob."""
+    """Lists objects from a bucket, optionally matching _glob.
+
+    _glob should be heavily preferred.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+
+    Returns:
+        (list) : list of objects in given bucket
+    """
     pass
 
 def get_metadata(bucket, key):
-    """Gets metadata of a given object key."""
+    """Gets metadata of a given object key.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        key (str): Name of s3 object key.
+
+    Returns:
+        (dict) metadata of given object
+    """
     print('get_metadata')
     pass
 
 def upload_object(bucket, local_file, key, metadata=None):
-    """Uploads files to object store."""
+    """Uploads files to object store.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        local_file (str): Filename of local file.
+        key (str): Name of s3 object key.
+        metadata (dict, str): dict or string representing key/value pairs.
+
+    Returns:
+        None
+    """
     pass
 
 def delete(bucket, key):
-    """Deletes Key from given bucket."""
+    """Deletes Key from given bucket.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        key (str): Name of s3 object key.
+
+    Returns:
+        None
+    """
     print('delete')
 
 def get_action_map():
@@ -198,8 +252,16 @@ def get_action_map():
    #         }
     return _map
 
-def remove_common_args(_dict):
-    """Removes global arguments from given dict."""
+def _remove_common_args(_dict):
+    """Removes global arguments from given dict.
+
+    Args:
+        _dict (dict) : dict where common args removed.
+        Note that _dict is not copied. Typically from argparse namespace.
+
+    Returns:
+        None
+    """
     del _dict['noprint']
     del _dict['use_local_config']
     del _dict['command']
@@ -213,11 +275,15 @@ def do_action(args):
     Returns:
         None ## Maybe returns (str) or (dict)?
     """
+    # Init Session
+    global client = get_session(args.use_local_config)
+
     func_map = get_action_map()
     command = args.command
     prog = func_map[command]
+
     args_dict = args.__dict__
-    remove_common_args(args_dict)
+    _remove_common_args(args_dict)
     prog(**args_dict)
 
 if __name__ == "__main__":
