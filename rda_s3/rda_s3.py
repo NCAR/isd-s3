@@ -157,7 +157,7 @@ def list_buckets():
     Returns:
         (list) : list of buckets.
     """
-    pass
+    return client.list_buckets()['Buckets']
 
 def list_objects(bucket, _glob=None):
     """Lists objects from a bucket, optionally matching _glob.
@@ -221,10 +221,15 @@ def get_action_map():
     """
     _map = {
             "list_buckets" : list_buckets,
+            "lb" : list_buckets,
             "list_objects" : list_objects,
+            "lo" : list_objects,
             "get_metadata" : get_metadata,
+            "gm" : get_metadata,
             "upload" : upload_object,
-            "delete" : delete
+            "ul" : upload_object,
+            "delete" : delete,
+            "d" : delete
             }
 # Maybe not this
 
@@ -285,11 +290,14 @@ def do_action(args):
 
     args_dict = args.__dict__
     _remove_common_args(args_dict)
-    prog(**args_dict)
+    return prog(**args_dict)
 
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
-    do_action(args)
+    noprint = args.noprint
+    ret = do_action(args)
+    if not noprint:
+        print(ret)
 else:
     client = get_session()
