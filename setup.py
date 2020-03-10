@@ -23,7 +23,8 @@ setup(
     url="https://github.com/NCAR/rda-s3",
     packages=find_packages(exclude=["tests", "tests.*"]),
     install_requires=[
-        "boto3"
+	    "boto3",
+	    "botocore"
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
