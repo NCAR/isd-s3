@@ -31,11 +31,6 @@ import logging
 import json
 import boto3
 
-__author__ = "Tom Cram (tcram@ucar.edu), Riley Conroy (rpconroy@ucar.edu)"
-__license__ = "GPL"
-__version__ = "0.1.0" # Please refer to https://semver.org/ for versioning.
-
-
 S3_URL = 'https://stratus.ucar.edu'
 
 client = None
