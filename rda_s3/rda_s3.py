@@ -132,6 +132,20 @@ def get_parser():
             metavar='<bucket>',
             required=True,
             help="Bucket to list objects from")
+    lo_parser.add_argument('glob',
+            type=str,
+            nargs='?',
+            metavar='<glob string>',
+            help="String to glob from. E.g. ds084.1/*")
+    lo_parser.add_argument('-ls',
+            action='store_true',
+            required=False,
+            help="List just the directory level")
+
+    lo_parser.add_argument('--keys_only', '-ko'
+            action='store_true',
+            required=False,
+            help="Only return the object keys")
 
 
     meta_parser = actions_parser.add_parser("get_metadata",
@@ -154,7 +168,7 @@ def list_buckets():
     """
     return client.list_buckets()['Buckets']
 
-def list_objects(bucket, _glob=None):
+def list_objects(bucket, glob=None, ls=False, keys_only=False):
     """Lists objects from a bucket, optionally matching _glob.
 
     _glob should be heavily preferred.
@@ -165,7 +179,18 @@ def list_objects(bucket, _glob=None):
     Returns:
         (list) : list of objects in given bucket
     """
-    pass
+    _delimiter = ''
+    if ls is True:
+        _delimiter = '/'
+
+    if glob is None:
+        response = client.list_objects_v2(Bucket=bucket, Delimiter=_delimiter)
+    else:
+        response = client.list_objects_v2(Bucket=bucket, Prefix=glob, Delimiter=_delimiter)
+
+    if keys_only
+        return list(map(lambda x: x['Key'], response['Contents'])
+    return response['Contents']
 
 def get_metadata(bucket, key):
     """Gets metadata of a given object key.
@@ -284,11 +309,15 @@ def do_action(args):
     prog = func_map[command]
 
     args_dict = args.__dict__
+    #pdb.set_trace()
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
 if __name__ == "__main__":
     parser = get_parser()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        exit(1)
     args = parser.parse_args()
     noprint = args.noprint
     ret = do_action(args)
