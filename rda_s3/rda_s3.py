@@ -86,6 +86,10 @@ def get_parser():
             aliases=['lb'],
             help='lists Buckets',
             description='Lists buckets')
+    lb_parser.add_argument('--buckets_only', '-bo',
+            action='store_true',
+            required=False,
+            help="Only return the bucket names")
 
     del_parser = actions_parser.add_parser("delete",
             aliases=['dl'],
@@ -151,7 +155,6 @@ def get_parser():
             required=False,
             help="Only return the object keys")
 
-
     meta_parser = actions_parser.add_parser("get_metadata",
             aliases=['gm'],
             help='Get Metadata of object',
@@ -164,13 +167,19 @@ def get_parser():
 
     return parser
 
-def list_buckets():
+def list_buckets(buckets_only=False):
     """Lists all buckets.
+
+    Args:
+        buckets_only (bool): Only return bucket names
 
     Returns:
         (list) : list of buckets.
     """
-    return client.list_buckets()['Buckets']
+    response = client.list_buckets()['Buckets']
+    if buckets_only:
+        return list(map(lambda x: x['Name'], response))
+    return response
 
 def list_objects(bucket, glob=None, ls=False, keys_only=False):
     """Lists objects from a bucket, optionally matching _glob.
@@ -179,6 +188,9 @@ def list_objects(bucket, glob=None, ls=False, keys_only=False):
 
     Args:
         bucket (str): Name of s3 bucket.
+        glob (str): Prefix from which to filter.
+        ls (bool): Get 'directories'.
+        keys_only (bool): Only return the keys.
 
     Returns:
         (list) : list of objects in given bucket
@@ -214,8 +226,7 @@ def get_metadata(bucket, key):
     Returns:
         (dict) metadata of given object
     """
-    print('get_metadata')
-    pass
+    return client.head_object(Bucket=bucket, Key=key)['Metadata']
 
 def upload_object(bucket, local_file, key, metadata=None):
     """Uploads files to object store.
@@ -229,7 +240,19 @@ def upload_object(bucket, local_file, key, metadata=None):
     Returns:
         None
     """
-    pass
+    if metadata is None:
+        return client.upload_file(local_file, bucket, key)
+
+    meta_dict = {'Metadata' : None}
+    if type(metadata) is str:
+        # Parse string or check if file exists
+        pass
+    elif type(metadata) is dict:
+        #TODO assert it's a flat dict
+        meta_dict['Metadata'] = metadata
+
+    return client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
+
 
 def delete(bucket, key):
     """Deletes Key from given bucket.
@@ -241,7 +264,7 @@ def delete(bucket, key):
     Returns:
         None
     """
-    print('delete')
+    return client.delete_object(Bucket=bucket, Key=key)
 
 def get_action_map():
     """Gets a map between the command line 'commands' and functions.
@@ -263,30 +286,6 @@ def get_action_map():
             "delete" : delete,
             "d" : delete
             }
-# Maybe not this
-
-   # _map = {
-   #         "list_buckets" : {
-   #             'prog' : list_buckets,
-   #             'args' : []
-   #             },
-   #         "list_objects" : {
-   #             'prog' : list_objects,
-   #             'args' : ['bucket']
-   #             },
-   #         "get_metadata" : {
-   #             'prog' : get_metadata,
-   #             'args' : []
-   #             },
-   #         "upload" : {
-   #             'prog' : upload_object,
-   #             'args' : []
-   #             },
-   #         "delete" : {
-   #             'prog' : delete,
-   #             'args' : []
-   #             }
-   #         }
     return _map
 
 def _remove_common_args(_dict):
@@ -337,7 +336,10 @@ if __name__ == "__main__":
     ret = do_action(args)
     if not noprint:
         if pretty_print:
-            print(json.dumps(ret, indent=4))
+            try:
+                print(json.dumps(ret, indent=4))
+            except:
+                print(ret)
         else:
             print(ret)
 
