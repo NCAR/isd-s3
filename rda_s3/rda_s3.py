@@ -37,6 +37,8 @@ S3_URL = 'https://stratus.ucar.edu'
 client = None
 os.environ['AWS_SHARED_CREDENTIALS_FILE'] = '/glade/u/home/rdadata/.aws/credentials'
 
+logging.getLogger("rda_s3")
+
 def get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
 
