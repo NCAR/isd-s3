@@ -9,6 +9,7 @@ CLI to interact with s3.
 optional arguments:
   -h, --help            show this help message and exit
   --noprint, -np        Do not print result of actions.
+  --prettyprint, -pp    Pretty print result
   --use_local_config USE_LOCAL_CONFIG, -ul USE_LOCAL_CONFIG
                         Use your local credentials. (~/.aws/credentials)
 
@@ -159,6 +160,11 @@ def get_parser():
             aliases=['gm'],
             help='Get Metadata of object',
             description='Get Metadata of an object')
+    meta_parser.add_argument('--bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=True,
+            help="Bucket from which to retrieve metadata")
     meta_parser.add_argument('--key', '-k',
             type=str,
             metavar='<key>',
