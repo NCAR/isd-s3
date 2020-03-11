@@ -142,7 +142,7 @@ def get_parser():
             required=False,
             help="List just the directory level")
 
-    lo_parser.add_argument('--keys_only', '-ko'
+    lo_parser.add_argument('--keys_only', '-ko',
             action='store_true',
             required=False,
             help="Only return the object keys")
@@ -188,8 +188,8 @@ def list_objects(bucket, glob=None, ls=False, keys_only=False):
     else:
         response = client.list_objects_v2(Bucket=bucket, Prefix=glob, Delimiter=_delimiter)
 
-    if keys_only
-        return list(map(lambda x: x['Key'], response['Contents'])
+    if keys_only:
+        return list(map(lambda x: x['Key'], response['Contents']))
     return response['Contents']
 
 def get_metadata(bucket, key):
