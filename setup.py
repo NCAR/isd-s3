@@ -24,7 +24,9 @@ setup(
     packages=find_packages(exclude=["tests", "tests.*"]),
     install_requires=[
 	    "boto3",
-	    "botocore"
+	    "botocore",
+	    "pdb",
+	    "argparse"
     ],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
