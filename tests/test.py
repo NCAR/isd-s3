@@ -4,6 +4,7 @@ Test rda_s3.py
 """
 import inspect
 import sys
+#from rda_s3 import rda_s3
 
 def passed():
     curframe = inspect.currentframe()

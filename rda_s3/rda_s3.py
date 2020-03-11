@@ -59,13 +59,17 @@ def get_parser():
         (argparse.ArgumentParser): Parser object from which to parse arguments.
     """
     description = "CLI to interact with s3."
-    parser = argparse.ArgumentParser(prog='tool', description=description)
+    parser = argparse.ArgumentParser(prog='rda_s3', description=description)
 
     # Arguments that are always allowed
     parser.add_argument('--noprint', '-np',
             action='store_true',
             required=False,
             help="Do not print result of actions.")
+    parser.add_argument('--prettyprint', '-pp',
+            action='store_true',
+            required=False,
+            help="Pretty print result")
     parser.add_argument('--use_local_config', '-ul',
             required=False,
             help="Use your local credentials. (~/.aws/credentials)")
@@ -179,14 +183,22 @@ def list_objects(bucket, glob=None, ls=False, keys_only=False):
     Returns:
         (list) : list of objects in given bucket
     """
-    _delimiter = ''
-    if ls is True:
-        _delimiter = '/'
+
+    if ls:
+        # Need a Prefix if using -ls
+        if glob is None:
+            glob = ""
+        response = client.list_objects_v2(Bucket=bucket, Prefix=glob, Delimiter='/')
+        if 'CommonPrefixes' in response:
+            return list(map(lambda x: x['Prefix'], response['CommonPrefixes']))
+        if 'Contents' in response:
+            return list(map(lambda x: x['Key'], response['Contents']))
+        return [] # Can't find anything
 
     if glob is None:
-        response = client.list_objects_v2(Bucket=bucket, Delimiter=_delimiter)
+        response = client.list_objects_v2(Bucket=bucket)
     else:
-        response = client.list_objects_v2(Bucket=bucket, Prefix=glob, Delimiter=_delimiter)
+        response = client.list_objects_v2(Bucket=bucket, Prefix=glob)
 
     if keys_only:
         return list(map(lambda x: x['Key'], response['Contents']))
@@ -288,6 +300,7 @@ def _remove_common_args(_dict):
         None
     """
     del _dict['noprint']
+    del _dict['prettyprint']
     del _dict['use_local_config']
     del _dict['command']
 
@@ -320,8 +333,13 @@ if __name__ == "__main__":
         exit(1)
     args = parser.parse_args()
     noprint = args.noprint
+    pretty_print = args.prettyprint
     ret = do_action(args)
     if not noprint:
-        print(ret)
+        if pretty_print:
+            print(json.dumps(ret, indent=4))
+        else:
+            print(ret)
+
 else:
     client = get_session()
