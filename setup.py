@@ -14,7 +14,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="ncar-rda-s3",
-    version="0.1.1",  # See semantic versioning at https://semver.org/
+    version="0.1.2",  # See semantic versioning at https://semver.org/
     author="NCAR RDA Team",
     author_email="rdahelp@ucar.edu",
     description="NCAR RDA S3 object storage utility",
