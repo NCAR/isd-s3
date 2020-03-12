@@ -43,6 +43,7 @@ if credentials_file_env not in os.environ:
 
 def get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
+    This should generally be executed after module load.
 
     Args:
         use_local_cred (bool): Use personal credentials for session. Default False.
@@ -57,7 +58,7 @@ def get_session(use_local_cred=False, _endpoint_url=S3_URL):
             endpoint_url=_endpoint_url
             )
 
-def get_parser():
+def _get_parser():
     """Creates and returns parser object.
 
     Returns:
@@ -276,7 +277,7 @@ def delete(bucket, key):
     """
     return client.delete_object(Bucket=bucket, Key=key)
 
-def get_action_map():
+def _get_action_map():
     """Gets a map between the command line 'commands' and functions.
 
     TODO: Maybe parse the parser?? parser._actions[-1].choices['upload']._actions
@@ -326,17 +327,16 @@ def do_action(args):
     global client
     client = get_session(args.use_local_config)
 
-    func_map = get_action_map()
+    func_map = _get_action_map()
     command = args.command
     prog = func_map[command]
 
     args_dict = args.__dict__
-    #pdb.set_trace()
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
 def main(args)
-    parser = get_parser()
+    parser = _get_parser()
     if len(sys.argv) == 0:
         parser.print_help()
         exit(1)
