@@ -6,8 +6,6 @@ import inspect
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/..')
-print(sys.path)
-
 from rda_s3 import rda_s3
 
 def passed():

@@ -33,11 +33,13 @@ import boto3
 import logging
 
 S3_URL = 'https://stratus.ucar.edu'
-
 client = None
-os.environ['AWS_SHARED_CREDENTIALS_FILE'] = '/glade/u/home/rdadata/.aws/credentials'
-
 logging.getLogger("rda_s3")
+
+credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
+if credentials_file_env not in os.environ:
+    os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
+
 
 def get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
@@ -333,12 +335,12 @@ def do_action(args):
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
-if __name__ == "__main__":
+def main(args)
     parser = get_parser()
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 0:
         parser.print_help()
         exit(1)
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
@@ -354,5 +356,8 @@ if __name__ == "__main__":
         else:
             print(ret)
 
+if __name__ == "__main__":
+    main(sys.argv[1:])
 else:
     client = get_session()
+
