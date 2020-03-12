@@ -64,8 +64,11 @@ def _get_parser():
     Returns:
         (argparse.ArgumentParser): Parser object from which to parse arguments.
     """
-    description = "CLI to interact with s3."
-    parser = argparse.ArgumentParser(prog='rda_s3', description=description)
+    description = "CLI to interact with s3.\nNote: To use optional arguments, put them before sub-command."
+    parser = argparse.ArgumentParser(
+            prog='rda_s3',
+            description=description,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # Arguments that are always allowed
     parser.add_argument('--noprint', '-np',
@@ -78,6 +81,7 @@ def _get_parser():
             help="Pretty print result")
     parser.add_argument('--use_local_config', '-ul',
             required=False,
+            action='store_true',
             help="Use your local credentials. (~/.aws/credentials)")
 
     # Mutually exclusive commands
@@ -335,12 +339,20 @@ def do_action(args):
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
-def main(args)
+def main(args_list):
+    """Use command line-like arguments to execute
+
+    Args:
+        args_list (list): list of args as they would be passed to command line.
+
+    Returns:
+        (dict, generally) : result of argument call.
+    """
     parser = _get_parser()
-    if len(sys.argv) == 0:
+    if len(args_list) == 0:
         parser.print_help()
         exit(1)
-    args = parser.parse_args(args)
+    args = parser.parse_args(args_list)
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
@@ -355,6 +367,7 @@ def main(args)
                 print(ret)
         else:
             print(ret)
+    return ret
 
 if __name__ == "__main__":
     main(sys.argv[1:])
