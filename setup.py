@@ -1,7 +1,7 @@
 import sys
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 0):
+if sys.version_info < (3, 1):
     raise NotImplementedError(
         """\n
 ##############################################################
@@ -38,5 +38,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Intended Audience :: Developers"
     ],
-    python_requires='>=3.0',
+    python_requires='>=3.1',
 )
