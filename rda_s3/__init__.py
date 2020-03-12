@@ -1,5 +1,5 @@
 import logging
-import logging.handlers
+from logging.handlers import RotatingFileHandler
 
 """ 
     Configure logging for a library, per Python best practices:
@@ -20,7 +20,7 @@ import logging.handlers
 LOGPATH = '/glade/u/home/rdadata/dssdb/log'
 LOGFILE = 'rda-s3.log'
 logging.getLogger("rda_s3")
-handler = logging.handlers.RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=2000000,backupCount=1)
+handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=2000000,backupCount=1)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
