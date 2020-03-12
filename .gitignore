@@ -2,3 +2,4 @@
 build/*
 dist/*
 ncar_rda_s3.egg-info/*
+*.log

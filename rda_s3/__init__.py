@@ -1,13 +1,14 @@
+import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
-""" 
+"""
     Configure logging for a library, per Python best practices:
     https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
-    NB: this won't work in Python older than v3.1 because `logging.NullHandler` 
+    NB: this won't work in Python older than v3.1 because `logging.NullHandler`
     wasn't added yet.
-    
-    NB #2: External apps should delete the logging handler added below and 
+
+    NB #2: External apps should delete the logging handler added below and
     instead uncomment the first line that adds the NullHandler.  See note
     in above link for more information.
 """
@@ -20,7 +21,10 @@ from logging.handlers import RotatingFileHandler
 LOGPATH = '/glade/u/home/rdadata/dssdb/log'
 LOGFILE = 'rda-s3.log'
 logging.getLogger("rda_s3")
-handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=2000000,backupCount=1)
+try:
+    handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=2000000,backupCount=1)
+except:
+    handler = logging.StreamHandler(sys.stdout) # Go stdout if logpath not defined
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)

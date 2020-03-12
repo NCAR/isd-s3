@@ -30,6 +30,7 @@ import os
 import argparse
 import json
 import boto3
+import logging
 
 S3_URL = 'https://stratus.ucar.edu'
 
@@ -340,6 +341,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     noprint = args.noprint
     pretty_print = args.prettyprint
+    if args.use_local_config is True:
+        del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+
     ret = do_action(args)
     if not noprint:
         if pretty_print:
