@@ -15,7 +15,11 @@ system.
     - [List Objects](#list-objects)
     - [Get Metadata](#get-metadata)
 - [Examples](#Examples)
-  + [List Buckets](#list-buckets)
+  + [List Buckets](#list-buckets-1)
+  + [Delete](#delete-1)
+  + [Upload](#upload-1)
+  + [List Objects](#list-objects-1)
+  + [Get Metadata](#get-metadata-1)
   
 
 ## Usage
@@ -137,7 +141,44 @@ optional arguments:
 
 ##### List Buckets
 
+```
+./rda-s3.py lb -b "rda-data"
+```
 
+
+##### Delete
+
+```
+./rda-s3.py dl -b 'rda-data' -k '/path/to/my/key'
+```
+
+
+##### Upload
+
+```
+./rda-s3.py ul -b 'rda-data' -lf 'myfile.txt' -k '/path/to/my/key/myfile.txt'
+```
+
+
+##### List Objects
+
+List using a prefix
+```
+./rda-s3.py lo -b rda-data someGlob
+```
+
+Directory level lisiting 
+
+```
+./rda-s3.py lo -b rda-data -ls some_path/
+```
+
+
+##### Get Metadata
+
+```
+./rda-s3.py gm -b rda-data -k /path/to/key
+```
 
 
 
