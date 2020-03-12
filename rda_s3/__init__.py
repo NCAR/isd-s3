@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 
 """ 
     Configure logging for a library, per Python best practices:
