@@ -339,16 +339,17 @@ def do_action(args):
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
-def main(args_list):
+def main(*args_list):
     """Use command line-like arguments to execute
 
     Args:
-        args_list (list): list of args as they would be passed to command line.
+        args_list (unpacked list): list of args as they would be passed to command line.
 
     Returns:
         (dict, generally) : result of argument call.
     """
     parser = _get_parser()
+    args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
         parser.print_help()
         exit(1)
@@ -370,7 +371,7 @@ def main(args_list):
     return ret
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main(*sys.argv[1:])
 else:
     client = get_session()
 
