@@ -30,16 +30,20 @@ import os
 import argparse
 import json
 import boto3
+import logging
 
 S3_URL = 'https://stratus.ucar.edu'
-
 client = None
-os.environ['AWS_SHARED_CREDENTIALS_FILE'] = '/glade/u/home/rdadata/.aws/credentials'
-
 logging.getLogger("rda_s3")
+
+credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
+if credentials_file_env not in os.environ:
+    os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
+
 
 def get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
+    This should generally be executed after module load.
 
     Args:
         use_local_cred (bool): Use personal credentials for session. Default False.
@@ -54,14 +58,17 @@ def get_session(use_local_cred=False, _endpoint_url=S3_URL):
             endpoint_url=_endpoint_url
             )
 
-def get_parser():
+def _get_parser():
     """Creates and returns parser object.
 
     Returns:
         (argparse.ArgumentParser): Parser object from which to parse arguments.
     """
-    description = "CLI to interact with s3."
-    parser = argparse.ArgumentParser(prog='rda_s3', description=description)
+    description = "CLI to interact with s3.\nNote: To use optional arguments, put them before sub-command."
+    parser = argparse.ArgumentParser(
+            prog='rda_s3',
+            description=description,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # Arguments that are always allowed
     parser.add_argument('--noprint', '-np',
@@ -74,6 +81,7 @@ def get_parser():
             help="Pretty print result")
     parser.add_argument('--use_local_config', '-ul',
             required=False,
+            action='store_true',
             help="Use your local credentials. (~/.aws/credentials)")
 
     # Mutually exclusive commands
@@ -273,7 +281,7 @@ def delete(bucket, key):
     """
     return client.delete_object(Bucket=bucket, Key=key)
 
-def get_action_map():
+def _get_action_map():
     """Gets a map between the command line 'commands' and functions.
 
     TODO: Maybe parse the parser?? parser._actions[-1].choices['upload']._actions
@@ -323,23 +331,34 @@ def do_action(args):
     global client
     client = get_session(args.use_local_config)
 
-    func_map = get_action_map()
+    func_map = _get_action_map()
     command = args.command
     prog = func_map[command]
 
     args_dict = args.__dict__
-    #pdb.set_trace()
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
-if __name__ == "__main__":
-    parser = get_parser()
-    if len(sys.argv) == 1:
+def main(*args_list):
+    """Use command line-like arguments to execute
+
+    Args:
+        args_list (unpacked list): list of args as they would be passed to command line.
+
+    Returns:
+        (dict, generally) : result of argument call.
+    """
+    parser = _get_parser()
+    args_list = list(args_list) # args_list is tuple
+    if len(args_list) == 0:
         parser.print_help()
         exit(1)
-    args = parser.parse_args()
+    args = parser.parse_args(args_list)
     noprint = args.noprint
     pretty_print = args.prettyprint
+    if args.use_local_config is True:
+        del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+
     ret = do_action(args)
     if not noprint:
         if pretty_print:
@@ -349,6 +368,10 @@ if __name__ == "__main__":
                 print(ret)
         else:
             print(ret)
+    return ret
 
+if __name__ == "__main__":
+    main(*sys.argv[1:])
 else:
     client = get_session()
+
