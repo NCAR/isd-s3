@@ -29,6 +29,7 @@ import sys
 import os
 import argparse
 import json
+import re
 import boto3
 import logging
 
@@ -199,7 +200,7 @@ def list_buckets(buckets_only=False):
 def list_objects(bucket, glob=None, ls=False, keys_only=False):
     """Lists objects from a bucket, optionally matching _glob.
 
-    _glob should be heavily preferred.
+    glob should be heavily preferred.
 
     Args:
         bucket (str): Name of s3 bucket.
@@ -227,9 +228,34 @@ def list_objects(bucket, glob=None, ls=False, keys_only=False):
     else:
         response = client.list_objects_v2(Bucket=bucket, Prefix=glob)
 
+    if 'Contents' not in response:
+        return []
     if keys_only:
         return list(map(lambda x: x['Key'], response['Contents']))
     return response['Contents']
+
+def regex_filter(contents, regex_str):
+    """Filters contents using regular expression.
+
+    Args:
+        contents (list): response 'Contents' objects
+        regex_str (str): regular expression string
+
+    Returns:
+        (list) Contents objects.
+
+    """
+    filtered_objects = []
+    regex = re.compile(regex_str)
+    for _object in contents:
+        match = regex.match(_object['Key'])
+        if match is not None:
+            filtered_objects.append(_object)
+
+    return filtered_objects
+
+
+
 
 def get_metadata(bucket, key):
     """Gets metadata of a given object key.
