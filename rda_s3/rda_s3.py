@@ -142,25 +142,58 @@ def _get_parser():
             required=False,
             help="Optionally provide metadata for an object")
 
+    du_parser = actions_parser.add_parser("disk_usage",
+            aliases=['du'],
+            help='Reports disc usage from objects',
+            description='List objects')
+    du_parser.add_argument('--regex', '-re',
+            type=str,
+            metavar='<regex>',
+            required=False,
+            help="Regular expression to match keys against")
+    du_parser.add_argument('--bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=True,
+            help="Bucket to list objects from")
+    du_parser.add_argument('prefix',
+            type=str,
+            nargs='?',
+            metavar='<prefix string>',
+            default="",
+            help="prefix to filter objects. E.g. ds084.1/test")
+    du_parser.add_argument('--block_size', '-k',
+            type=str,
+            metavar='<block size>',
+            required=False,
+            default="1MB",
+            help="Specify block size, e.g. 1KB, 500MB, etc")
+
+
     lo_parser = actions_parser.add_parser("list_objects",
             aliases=['lo'],
             help='List objects',
             description='List objects')
+    lo_parser.add_argument('--regex', '-re',
+            type=str,
+            metavar='<regex>',
+            required=False,
+            help="Regular expression to match keys against")
     lo_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
             required=True,
             help="Bucket to list objects from")
-    lo_parser.add_argument('glob',
+    lo_parser.add_argument('prefix',
             type=str,
             nargs='?',
-            metavar='<glob string>',
-            help="String to glob from. E.g. ds084.1/*")
+            metavar='<prefix string>',
+            default="",
+            help="prefix to filter objects. E.g. ds084.1/test")
     lo_parser.add_argument('-ls',
             action='store_true',
             required=False,
             help="List just the directory level")
-
     lo_parser.add_argument('--keys_only', '-ko',
             action='store_true',
             required=False,
@@ -197,14 +230,78 @@ def list_buckets(buckets_only=False):
         return list(map(lambda x: x['Name'], response))
     return response
 
-def list_objects(bucket, glob=None, ls=False, keys_only=False):
-    """Lists objects from a bucket, optionally matching _glob.
-
-    glob should be heavily preferred.
+def directory_list(bucket, prefix="", ls=False, keys_only=False):
+    """Lists directories using a prefix, similar to POSIX ls
 
     Args:
         bucket (str): Name of s3 bucket.
-        glob (str): Prefix from which to filter.
+        prefix (str): Prefix from which to filter.
+        keys_only (bool): Only return the keys.
+    """
+    if prefix is None:
+        prefix = ""
+    response = client.list_objects_v2(Bucket=bucket, Prefix=prefix, Delimiter='/')
+    if 'CommonPrefixes' in response:
+        return list(map(lambda x: x['Prefix'], response['CommonPrefixes']))
+    if 'Contents' in response:
+        return list(map(lambda x: x['Key'], response['Contents']))
+    return [] # Can't find anything
+
+def parse_block_size(block_size_str):
+    """Gets the divisor for number of bytes given string.
+
+    Example:
+        '1MB' yields 1000000
+
+    """
+    units = {
+            'KB' : 1000,
+            'MB' : 1000000,
+            'GB' : 1000000000,
+            'TB' : 1000000000000,
+            }
+    if len(block_size_str) < 3:
+        print('block_size doesn\'t have enough information')
+        print('defaulting to 1KB')
+        block_size_str = '1KB'
+    unit = block_size_str[-2:].upper()
+    number = int(block_size_str[:-2])
+    if unit not in units:
+        print('unrecognized unit.')
+        print('defaulting to 1KB')
+        unit = 'KB'
+        number = 1
+
+    base_divisor = units[unit]
+    divisor = base_divisor * number
+    return divisor
+
+
+def disk_usage(bucket, prefix="", regex=None, block_size='1MB'):
+    """Returns the disk usage for a set of objects.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        prefix (str): Prefix from which to filter.
+
+    Returns (dict): disk usage of objects>
+
+    """
+    contents = list_objects(bucket, prefix, regex=regex)
+    total = 0
+    divisor = parse_block_size(block_size)
+    for _object in contents:
+        total += _object['Size'] / divisor
+    return {'disk_usage':total,'units':block_size}
+
+def list_objects(bucket, prefix="", ls=False, keys_only=False, regex=None):
+    """Lists objects from a bucket, optionally matching _prefix.
+
+    prefix should be heavily preferred.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        prefix (str): Prefix from which to filter.
         ls (bool): Get 'directories'.
         keys_only (bool): Only return the keys.
 
@@ -213,26 +310,26 @@ def list_objects(bucket, glob=None, ls=False, keys_only=False):
     """
 
     if ls:
-        # Need a Prefix if using -ls
-        if glob is None:
-            glob = ""
-        response = client.list_objects_v2(Bucket=bucket, Prefix=glob, Delimiter='/')
-        if 'CommonPrefixes' in response:
-            return list(map(lambda x: x['Prefix'], response['CommonPrefixes']))
-        if 'Contents' in response:
-            return list(map(lambda x: x['Key'], response['Contents']))
-        return [] # Can't find anything
+        return directory_list(bucket, prefix, keys_only)
 
-    if glob is None:
-        response = client.list_objects_v2(Bucket=bucket)
-    else:
-        response = client.list_objects_v2(Bucket=bucket, Prefix=glob)
+    contents = []
 
+    response = client.list_objects_v2(Bucket=bucket, Prefix=prefix)
     if 'Contents' not in response:
         return []
+    contents.extend(response['Contents'])
+    while response['IsTruncated']:
+        response = client.list_objects_v2(
+                Bucket=bucket,
+                Prefix=prefix,
+                ContinuationToken=response['NextContinuationToken'])
+        contents.extend(response['Contents'])
+    if regex is not None:
+        contents = regex_filter(contents, regex)
     if keys_only:
-        return list(map(lambda x: x['Key'], response['Contents']))
-    return response['Contents']
+        return list(map(lambda x: x['Key'], contents))
+
+    return contents
 
 def regex_filter(contents, regex_str):
     """Filters contents using regular expression.
@@ -325,7 +422,9 @@ def _get_action_map():
             "upload" : upload_object,
             "ul" : upload_object,
             "delete" : delete,
-            "d" : delete
+            "d" : delete,
+            "disk_usage" : disk_usage,
+            "du" : disk_usage
             }
     return _map
 
