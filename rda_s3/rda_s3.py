@@ -117,6 +117,21 @@ def _get_parser():
             required=True,
             help="Bucket from which to delete")
 
+    get_parser = actions_parser.add_parser("get_object",
+            aliases=['go'],
+            help='Pull object from store',
+            description='Pull object from store')
+    get_parser.add_argument('--key', '-k',
+            type=str,
+            metavar='<key>',
+            required=True,
+            help="Object key to pull")
+    get_parser.add_argument('--bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=True,
+            help="Bucket from which to pull object")
+
     upload_parser = actions_parser.add_parser("upload",
             aliases=['ul'],
             help='Upload objects',
@@ -404,6 +419,22 @@ def delete(bucket, key):
     """
     return client.delete_object(Bucket=bucket, Key=key)
 
+def get_object(bucket, key, write_dir='./'):
+    """Get's object from store.
+
+    Writes to local dir
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        key (str): Name of s3 object key.
+        write_dir (str): directory to write file to.
+
+    Returns:
+        None
+    """
+    local_filename = os.path.basename(key)
+    client.download_file(bucket, key, local_filename)
+
 def _get_action_map():
     """Gets a map between the command line 'commands' and functions.
 
@@ -413,6 +444,8 @@ def _get_action_map():
         (dict): dict where keys are command strings and values are functions.
     """
     _map = {
+            "get_object" : get_object,
+            "go" : get_object,
             "list_buckets" : list_buckets,
             "lb" : list_buckets,
             "list_objects" : list_objects,
