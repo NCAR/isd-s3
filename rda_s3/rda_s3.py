@@ -151,6 +151,7 @@ def _get_parser():
             type=str,
             metavar='<prefix>',
             required=False,
+            default="",
             help="Prepend this string to key")
     upload_mult_parser.add_argument('--recursive', '-r',
             action='store_true',
@@ -163,7 +164,7 @@ def _get_parser():
     upload_mult_parser.add_argument('--ignore', '-i',
             type=str,
             metavar='<ignore str>',
-            nargs='?',
+            nargs='*',
             default=[],
             required=False,
             help="directory to search for files")
@@ -473,7 +474,7 @@ def _get_filelist(local_dir, recursive=False, ignore=[]):
             return filelist
     return filelist
 
-def upload_mult_objects(bucket, local_dir, key_prefix=None, recursive=False, ignore=[], metadata=None, dry_run=False):
+def upload_mult_objects(bucket, local_dir, key_prefix="", recursive=False, ignore=[], metadata=None, dry_run=False):
     """Uploads files within a directory.
 
     Uses key from local files.
@@ -496,8 +497,48 @@ def upload_mult_objects(bucket, local_dir, key_prefix=None, recursive=False, ign
         None
 
     """
-    pdb.set_trace()
-    print('here')
+    filelist = _get_filelist(local_dir, recursive, ignore)
+    if metadata is not None:
+        func = _interpret_metadata_str(metadata)
+    cpus = multiprocessing.cpu_count()
+    for _file in filelist:
+        key = key_prefix + _file
+
+        metadata_str = None
+        if metadata is not None:
+            metadata_str = func(_file)
+
+        if dry_run:
+            print('(Dry Run) Uploading :'+_file+" to "+bucket+'/'+key)
+        else:
+            p = multiprocessing.Process(
+                    target=upload_object,
+                    args=(bucket,_file,key,metadata_str ))
+            p.start()
+            p.join()
+
+
+def _interpret_metadata_str(metadata):
+    """Determine what metadata string is,
+    is it static json, an external script, or python func."""
+
+    if callable(metadata):
+        return metadata
+
+    # If it's not a function, it better be a string
+    assert isinstance(metadata, str)
+
+    # Check if json
+    try:
+        metadata_obj = json.loads(metadata)
+        return lambda x: metadata_obj
+    # Otherwise, it should be a script
+    except ValueError:
+        import subprocess
+        def metadata_func(filename):
+            metadata_str = subprocess.check_output([metadata,filename])
+            return json.loads(metadata_str)
+
 
 def delete(bucket, key):
     """Deletes Key from given bucket.
@@ -526,6 +567,41 @@ def get_object(bucket, key, write_dir='./'):
     """
     local_filename = os.path.basename(key)
     client.download_file(bucket, key, local_filename)
+
+def delete_mult(bucket, obj_regex=None, dry_run=False):
+    """delete objects where keys match regex.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        regex (str): Regular expression to match agains
+    """
+    all_keys = list_objects(bucket, regex=obj_regex, keys_only=True)
+    matching_keys = []
+    for key in all_objs:
+        if dry_run:
+            print('Deleting:' + bucket + '/' + key)
+        else
+            delete(bucket, key)
+
+def search_metadata(bucket, obj_regex=None, metadata_key=None):
+    """Search metadata. Narrow search using regex for keys.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        regex (str): Regular expression to narrow search
+
+    Returns:
+        (list): keys that match
+    """
+    all_keys = list_objects(bucket, regex=obj_regex, keys_only=True)
+    matching_keys = []
+    for key in all_objs:
+        return_dict = get_metadata(bucket, key)
+        if metadata_key in return_dict.keys():
+            matching_keys.append(key)
+
+    return matching_keys
+
 
 def _get_action_map():
     """Gets a map between the command line 'commands' and functions.
