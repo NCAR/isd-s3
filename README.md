@@ -6,4 +6,7 @@ system.
 
 Source Code: [https://github.com/NCAR/rda-s3](https://github.com/NCAR/rda-s3)
 
+## Installation
+Install with `pip install ncar-rda-s3`
 
+You can then import the module in Python with `import rda_s3`.
