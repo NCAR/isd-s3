@@ -580,7 +580,7 @@ def delete_mult(bucket, obj_regex=None, dry_run=False):
     for key in all_objs:
         if dry_run:
             print('Deleting:' + bucket + '/' + key)
-        else
+        else:
             delete(bucket, key)
 
 def search_metadata(bucket, obj_regex=None, metadata_key=None):
