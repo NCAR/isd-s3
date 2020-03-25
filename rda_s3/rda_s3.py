@@ -32,6 +32,7 @@ import json
 import re
 import boto3
 import logging
+import multiprocessing
 
 S3_URL = 'https://stratus.ucar.edu'
 client = None
@@ -131,6 +132,47 @@ def _get_parser():
             metavar='<bucket>',
             required=True,
             help="Bucket from which to pull object")
+
+    upload_mult_parser = actions_parser.add_parser("upload_mult",
+            aliases=['um'],
+            help='Upload multiple objects.',
+            description='Upload multiple objects.')
+    upload_mult_parser.add_argument('--bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=True,
+            help="Destination bucket.")
+    upload_mult_parser.add_argument('--local_dir', '-ld',
+            type=str,
+            metavar='<directory>',
+            required=True,
+            help="Directory to search for files.")
+    upload_mult_parser.add_argument('--key_prefix', '-kp',
+            type=str,
+            metavar='<prefix>',
+            required=False,
+            help="Prepend this string to key")
+    upload_mult_parser.add_argument('--recursive', '-r',
+            action='store_true',
+            required=False,
+            help="recursively search directory")
+    upload_mult_parser.add_argument('--dry_run', '-dr',
+            action='store_true',
+            required=False,
+            help="Does not upload files.")
+    upload_mult_parser.add_argument('--ignore', '-i',
+            type=str,
+            metavar='<ignore str>',
+            nargs='?',
+            default=[],
+            required=False,
+            help="directory to search for files")
+    upload_mult_parser.add_argument('--metadata', '-md',
+            type=str,
+            metavar='<dict str, or path to script>',
+            required=False,
+            help="Optionally provide metadata for an object. \
+                    This can be a function where file is passed.")
 
     upload_parser = actions_parser.add_parser("upload",
             aliases=['ul'],
@@ -406,6 +448,56 @@ def upload_object(bucket, local_file, key, metadata=None):
 
     return client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
 
+def _get_filelist(local_dir, recursive=False, ignore=[]):
+    """Returns local filelist.
+
+    Args:
+        local_dir (str): local directory to scan
+        recursive (bool): whether or not to recursively scan directory.
+                          Does not follow symlinks.
+        ignore (iterable[str]): strings to ignore.
+    """
+    filelist = []
+    for root,_dir,files in os.walk(local_dir, topdown=True):
+        for _file in files:
+            full_filename = os.path.join(root,_file)
+
+            ignore_cur_file=False
+            for ignore_str in ignore:
+                if ignore_str in full_filename:
+                    ignore_cur_file=True
+                    break
+            if not ignore_cur_file:
+                filelist.append(full_filename)
+        if not recursive:
+            return filelist
+    return filelist
+
+def upload_mult_objects(bucket, local_dir, key_prefix=None, recursive=False, ignore=[], metadata=None, dry_run=False):
+    """Uploads files within a directory.
+
+    Uses key from local files.
+
+    Args:
+        bucket (str): Name of s3 bucket.
+        local_dir (str): Name of directory to upload
+        key_prefix (str): string to prepend to key.
+            example: If file is 'test/file.txt' and prefix is 'mydataset/'
+                     then, full key would be 'mydataset/test/file.txt'
+        recursive (bool): Recursively search directory,
+        ignore (iterable[str]): does not upload if string matches
+        metadata (func or str): If func, execute giving filename as argument. Expects
+                                metadata return code.
+                                If json str, all objects will have this placed in it.
+                                If location of script, calls script and captures output as
+                                the value of metadata.
+
+    Returns:
+        None
+
+    """
+    pdb.set_trace()
+    print('here')
 
 def delete(bucket, key):
     """Deletes Key from given bucket.
@@ -457,7 +549,9 @@ def _get_action_map():
             "delete" : delete,
             "d" : delete,
             "disk_usage" : disk_usage,
-            "du" : disk_usage
+            "du" : disk_usage,
+            "upload_mult" : upload_mult_objects,
+            "um" : upload_mult_objects
             }
     return _map
 
