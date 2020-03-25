@@ -34,6 +34,7 @@ import boto3
 import logging
 import multiprocessing
 
+_is_imported = False
 S3_URL = 'https://stratus.ucar.edu'
 client = None
 logging.getLogger("rda_s3")
@@ -667,6 +668,27 @@ def do_action(args):
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
+def _pretty_print(struct):
+    """pretty print output struct"""
+    if struct is None:
+        print(struct)
+    print(json.dumps(struct, indent=4, default=lambda x: x.__str__()))
+
+def exit(error):
+    """Throw error or exit.
+
+    Args:
+        error (str): Error message.
+    """
+    if _is_imported:
+        raise RDA_S3_Exception(error)
+    else:
+        sys.stdout.write(error)
+        exit(1)
+
+class RDA_S3_Exception(Exception):
+    pass
+
 def main(*args_list):
     """Use command line-like arguments to execute
 
@@ -690,10 +712,7 @@ def main(*args_list):
     ret = do_action(args)
     if not noprint:
         if pretty_print:
-            try:
-                print(json.dumps(ret, indent=4))
-            except:
-                print(ret)
+            _pretty_print(ret)
         else:
             print(ret)
     return ret
@@ -702,4 +721,5 @@ if __name__ == "__main__":
     main(*sys.argv[1:])
 else:
     client = get_session()
+    _is_imported = True
 
