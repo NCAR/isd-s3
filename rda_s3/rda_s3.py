@@ -674,7 +674,7 @@ def _pretty_print(struct):
         print(struct)
     print(json.dumps(struct, indent=4, default=lambda x: x.__str__()))
 
-def exit(error):
+def _exit(error):
     """Throw error or exit.
 
     Args:
