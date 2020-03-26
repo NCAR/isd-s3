@@ -538,8 +538,9 @@ def _interpret_metadata_str(metadata):
     except ValueError:
         import subprocess
         def metadata_func(filename):
-            metadata_str = subprocess.check_output([metadata,filename])
+            metadata_str = subprocess.check_output(['./'+metadata,filename])
             return json.loads(metadata_str)
+        return metadata_func
 
 
 def delete(bucket, key):
@@ -597,7 +598,7 @@ def search_metadata(bucket, obj_regex=None, metadata_key=None):
     """
     all_keys = list_objects(bucket, regex=obj_regex, keys_only=True)
     matching_keys = []
-    for key in all_objs:
+    for key in all_keys:
         return_dict = get_metadata(bucket, key)
         if metadata_key in return_dict.keys():
             matching_keys.append(key)
