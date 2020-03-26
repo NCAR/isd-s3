@@ -40,11 +40,12 @@ client = None
 logging.getLogger("rda_s3")
 
 credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
+# To use different profile, change AWS_PROFILE environment variable
 if credentials_file_env not in os.environ:
     os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
 
 
-def get_session(use_local_cred=False, _endpoint_url=S3_URL):
+def _get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
     This should generally be executed after module load.
 
@@ -443,7 +444,7 @@ def upload_object(bucket, local_file, key, metadata=None):
     meta_dict = {'Metadata' : None}
     if type(metadata) is str:
         # Parse string or check if file exists
-        pass
+         meta_dict['Metadata'] = json.loads(metadata)
     elif type(metadata) is dict:
         #TODO assert it's a flat dict
         meta_dict['Metadata'] = metadata
@@ -624,7 +625,7 @@ def _get_action_map():
             "upload" : upload_object,
             "ul" : upload_object,
             "delete" : delete,
-            "d" : delete,
+            "dl" : delete,
             "disk_usage" : disk_usage,
             "du" : disk_usage,
             "upload_mult" : upload_mult_objects,
@@ -658,7 +659,7 @@ def do_action(args):
     """
     # Init Session
     global client
-    client = get_session(args.use_local_config)
+    client = _get_session(args.use_local_config)
 
     func_map = _get_action_map()
     command = args.command
@@ -668,11 +669,14 @@ def do_action(args):
     _remove_common_args(args_dict)
     return prog(**args_dict)
 
-def _pretty_print(struct):
+def _pretty_print(struct, pretty_print=True):
     """pretty print output struct"""
     if struct is None:
-        print(struct)
-    print(json.dumps(struct, indent=4, default=lambda x: x.__str__()))
+        pass
+    elif pretty_print:
+        print(json.dumps(struct, indent=4, default=lambda x: x.__str__()))
+    else:
+        print(json.dumps(struct, default=lambda x: x.__str__()))
 
 def _exit(error):
     """Throw error or exit.
@@ -681,9 +685,9 @@ def _exit(error):
         error (str): Error message.
     """
     if _is_imported:
-        raise RDA_S3_Exception(error)
+        raise RDA_S3_Exception(str(error))
     else:
-        sys.stdout.write(error)
+        sys.stdout.write(str(error))
         exit(1)
 
 class RDA_S3_Exception(Exception):
@@ -702,11 +706,12 @@ def main(*args_list):
     args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
         parser.print_help()
-        exit(1)
+        _exit(1)
     args = parser.parse_args(args_list)
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
+        # Default loacation is ~/.aws/credentials
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
 
     ret = do_action(args)
@@ -714,12 +719,12 @@ def main(*args_list):
         if pretty_print:
             _pretty_print(ret)
         else:
-            print(ret)
+            _pretty_print(ret, False)
     return ret
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
 else:
-    client = get_session()
+    client = _get_session()
     _is_imported = True
 
