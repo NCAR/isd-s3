@@ -5,7 +5,7 @@ if sys.version_info < (3, 1):
     raise NotImplementedError(
         """\n
 ##############################################################
-# rda-s3 does not support python versions older than 3.0 #
+# rda-s3 does not support python versions older than 3.1 #
 ##############################################################"""
     )
 
