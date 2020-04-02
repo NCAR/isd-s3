@@ -2,6 +2,10 @@ import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
+__all__ = (
+    "isd_s3"
+)
+
 """
     Configure logging for a library, per Python best practices:
     https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library
