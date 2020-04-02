@@ -1,5 +1,5 @@
 *.pyc
 build/*
 dist/*
-ncar_rda_s3.egg-info/*
+ncar_isd_s3.egg-info/*
 *.log
