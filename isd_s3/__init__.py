@@ -19,8 +19,8 @@ from logging.handlers import RotatingFileHandler
 
 # External apps and developers: delete or uncomment the following logging configuration:
 LOGPATH = '/glade/u/home/rdadata/dssdb/log'
-LOGFILE = 'rda-s3.log'
-logging.getLogger("rda_s3")
+LOGFILE = 'isd-s3.log'
+logging.getLogger("isd_s3")
 try:
     handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=2000000,backupCount=1)
 except:
@@ -28,4 +28,4 @@ except:
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
-logging.getLogger("rda_s3").addHandler(handler)
+logging.getLogger("isd_s3").addHandler(handler)

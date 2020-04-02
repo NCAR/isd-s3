@@ -17,7 +17,7 @@ setup(
     version="0.1.3",  # See semantic versioning at https://semver.org/
     author="NCAR RDA Team",
     author_email="rdahelp@ucar.edu",
-    description="NCAR RDA S3 object storage utility",
+    description="NCAR ISD S3 object storage utility",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/NCAR/isd-s3",
