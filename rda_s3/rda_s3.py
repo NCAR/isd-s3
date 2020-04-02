@@ -34,12 +34,19 @@ import boto3
 import logging
 import multiprocessing
 
-_is_imported = False
-S3_URL = 'https://stratus.ucar.edu'
-client = None
 logging.getLogger("rda_s3")
-
+_is_imported = False
+S3_url_env = 'S3_URL'
 credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
+# to use different object store, change S3_URL environment variable
+S3_URL = 'https://stratus.ucar.edu'
+if S3_url_env in os.environ:
+    S3_URL = os.environ[S3_url_env]
+
+client = None
+
+DEFAULT_BUCKET='rda-data'
+
 # To use different profile, change AWS_PROFILE environment variable
 if credentials_file_env not in os.environ:
     os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
@@ -87,6 +94,11 @@ def _get_parser():
             required=False,
             action='store_true',
             help="Use your local credentials. (~/.aws/credentials)")
+    parser.add_argument('--s3_url',
+            type=str,
+            required=False,
+            metavar='<url>',
+            help="S3 url. Default: 'https://stratus.ucar.edu'")
 
     # Mutually exclusive commands
     actions_parser = parser.add_subparsers(title='Actions',
@@ -714,6 +726,9 @@ def main(*args_list):
     if args.use_local_config is True:
         # Default loacation is ~/.aws/credentials
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+    if args.s3_url is not None:
+        S3_URL = args.s3_url
+
 
     ret = do_action(args)
     if not noprint:
