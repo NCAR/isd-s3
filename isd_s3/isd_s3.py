@@ -1,29 +1,38 @@
 #!/usr/bin/env python3
-"""Interacts with s3 api
+"""Interacts with s3 api.
 
 Usage:
 ```
->>> rda_s3.py -h
+>>> isd_s3.py -h
+usage: isd_s3 [-h] [--noprint] [--prettyprint] [--use_local_config]
+              [--s3_url <url>]
+              {list_buckets,lb,delete,dl,get_object,go,upload_mult,um,upload,ul,disk_usage,du,list_objects,lo,get_metadata,gm}
+              ...
+
 CLI to interact with s3.
+Note: To use optional arguments, put them before sub-command.
 
 optional arguments:
   -h, --help            show this help message and exit
   --noprint, -np        Do not print result of actions.
   --prettyprint, -pp    Pretty print result
-  --use_local_config USE_LOCAL_CONFIG, -ul USE_LOCAL_CONFIG
+  --use_local_config, -ul
                         Use your local credentials. (~/.aws/credentials)
+  --s3_url <url>        S3 url. Default: 'https://stratus.ucar.edu'
 
 Actions:
-  {list_buckets,lb,delete,dl,upload,ul,list_objects,lo,get_metadata,gm}
+  {list_buckets,lb,delete,dl,get_object,go,upload_mult,um,upload,ul,disk_usage,du,list_objects,lo,get_metadata,gm}
                         Use `tool [command] -h` for more info on command
     list_buckets (lb)   lists Buckets
     delete (dl)         Delete objects
+    get_object (go)     Pull object from store
+    upload_mult (um)    Upload multiple objects.
     upload (ul)         Upload objects
+    disk_usage (du)     Reports disc usage from objects
     list_objects (lo)   List objects
     get_metadata (gm)   Get Metadata of object
 ```
 """
-
 import pdb
 import sys
 import os
@@ -34,7 +43,7 @@ import boto3
 import logging
 import multiprocessing
 
-logging.getLogger("rda_s3")
+logging.getLogger("isd_s3")
 _is_imported = False
 S3_url_env = 'S3_URL'
 credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
@@ -75,9 +84,9 @@ def _get_parser():
     Returns:
         (argparse.ArgumentParser): Parser object from which to parse arguments.
     """
-    description = "CLI to interact with s3.\nNote: To use optional arguments, put them before sub-command."
+    description = "CLI to interact with s3.\nNote: To use optional arguments, place argument them before sub-command."
     parser = argparse.ArgumentParser(
-            prog='rda_s3',
+            prog='isd_s3',
             description=description,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -698,12 +707,12 @@ def _exit(error):
         error (str): Error message.
     """
     if _is_imported:
-        raise RDA_S3_Exception(str(error))
+        raise ISD_S3_Exception(str(error))
     else:
         sys.stdout.write(str(error))
         exit(1)
 
-class RDA_S3_Exception(Exception):
+class ISD_S3_Exception(Exception):
     pass
 
 def main(*args_list):

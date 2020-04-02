@@ -1,4 +1,4 @@
-# rda-s3
+# ISD_s3
 NCAR RDA S3 Object Storage utility
 
 A command line tool to manage data access to the NCAR RDA S3 Object Storage
@@ -27,7 +27,7 @@ system.
 #### Default help
 
 ```
-./rda_s3.py
+./isd_s3.py
 CLI to interact with s3.
 
 optional arguments:
@@ -52,8 +52,8 @@ Actions:
 ##### List buckets
 
 ```
-./rda_s3.py list_buckets -h 
-usage: rda_s3 list_buckets [-h] [--buckets_only]
+./isd_s3.py list_buckets -h 
+usage: isd_s3 list_buckets [-h] [--buckets_only]
 
 Lists buckets
 
@@ -65,8 +65,8 @@ optional arguments:
 ##### Delete
 
 ```
-./rda_s3.py delete -h
-usage: rda_s3 delete [-h] --key <key> --bucket <bucket>
+./isd_s3.py delete -h
+usage: isd_s3 delete [-h] --key <key> --bucket <bucket>
 
 Delete objects
 
@@ -76,15 +76,15 @@ optional arguments:
                         Object key to delete
   --bucket <bucket>, -b <bucket>
                         Bucket from which to delete
-rda-s3/rda_s3> 
+isd_s3/isd_s3> 
 
 ```
 
 ##### Upload
 
 ```
-./rda_s3.py upload -h
-usage: rda_s3 upload [-h] --local_file <filename> --bucket <bucket> --key
+./isd_s3.py upload -h
+usage: isd_s3 upload [-h] --local_file <filename> --bucket <bucket> --key
                      <key> [--metadata <dict str>]
 
 Upload objects
@@ -104,8 +104,8 @@ optional arguments:
 ##### List objects
 
 ```
-./rda_s3.py list_objects -h
-usage: rda_s3 list_objects [-h] --bucket <bucket> [-ls] [--keys_only]
+./isd_s3.py list_objects -h
+usage: isd_s3 list_objects [-h] --bucket <bucket> [-ls] [--keys_only]
                            [<glob string>]
 
 List objects
@@ -124,7 +124,7 @@ optional arguments:
 ##### Get metadata
 
 ```
-./rda_s3.py get_metadata -h
+./isd_s3.py get_metadata -h
 
 Get Metadata of an object
 
@@ -142,21 +142,21 @@ optional arguments:
 ##### List Buckets
 
 ```
-./rda-s3.py lb -b "rda-data"
+./isd_s3.py lb -b "rda-data"
 ```
 
 
 ##### Delete
 
 ```
-./rda-s3.py dl -b 'rda-data' -k '/path/to/my/key'
+./isd_s3.py dl -b 'rda-data' -k '/path/to/my/key'
 ```
 
 
 ##### Upload
 
 ```
-./rda-s3.py ul -b 'rda-data' -lf 'myfile.txt' -k '/path/to/my/key/myfile.txt'
+./isd_s3.py ul -b 'rda-data' -lf 'myfile.txt' -k '/path/to/my/key/myfile.txt'
 ```
 
 
@@ -164,20 +164,20 @@ optional arguments:
 
 List using a prefix
 ```
-./rda-s3.py lo -b rda-data someGlob
+./isd_s3.py lo -b rda-data someGlob
 ```
 
 Directory level lisiting 
 
 ```
-./rda-s3.py lo -b rda-data -ls some_path/
+./isd_s3.py lo -b rda-data -ls some_path/
 ```
 
 
 ##### Get Metadata
 
 ```
-./rda-s3.py gm -b rda-data -k /path/to/key
+./isd_s3.py gm -b rda-data -k /path/to/key
 ```
 
 
