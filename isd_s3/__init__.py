@@ -2,6 +2,8 @@ import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
+from isd_s3 import isd_s3
+
 __all__ = (
     "isd_s3"
 )
