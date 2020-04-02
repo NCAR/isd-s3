@@ -1,4 +1,4 @@
-# rda-s3
+# isd-s3
 NCAR ISD S3 Object Storage utility
 
 A command line tool to manage data access to the NCAR RDA S3 Object Storage
