@@ -730,6 +730,7 @@ def main(*args_list):
         parser.print_help()
         _exit(1)
     args = parser.parse_args(args_list)
+    logging.info("[main]{0}: {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
