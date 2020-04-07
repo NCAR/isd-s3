@@ -44,7 +44,7 @@ import logging
 import multiprocessing
 
 try:
-     import isd_s3_config as cfg
+     from isd_s3 import isd_s3_config as cfg
 except:
      pass
 
