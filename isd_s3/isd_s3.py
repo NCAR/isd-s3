@@ -720,7 +720,7 @@ def _exit(error):
 class ISD_S3_Exception(Exception):
     pass
 
-def configure_log()
+def configure_log():
     """ Configure logging 
     
     Logging can be configured in the configuration file 'isd_s3_config.py' as follows:
