@@ -667,6 +667,7 @@ def _remove_common_args(_dict):
     """
     del _dict['noprint']
     del _dict['prettyprint']
+    del _dict['s3_url']
     del _dict['use_local_config']
     del _dict['command']
 
