@@ -762,7 +762,7 @@ def configure_log():
     """ set logging format """
     try:
         formatter = logging.Formatter(cfg.logging["logfmt"])
-    else:
+    except:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)	
 
