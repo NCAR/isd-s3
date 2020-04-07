@@ -3,3 +3,4 @@ build/*
 dist/*
 ncar_isd_s3.egg-info/*
 *.log
+*config.py

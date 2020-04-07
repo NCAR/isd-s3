@@ -43,7 +43,11 @@ import boto3
 import logging
 import multiprocessing
 
-logging.getLogger("isd_s3")
+try:
+     import isd_s3_config as cfg
+except:
+     pass
+
 _is_imported = False
 S3_url_env = 'S3_URL'
 credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
@@ -716,6 +720,54 @@ def _exit(error):
 class ISD_S3_Exception(Exception):
     pass
 
+def configure_log()
+    """ Configure logging 
+    
+    Logging can be configured in the configuration file 'isd_s3_config.py' as follows:
+    
+    logging = {'logpath': <log_path>,
+               'logfile: <log_file_name>,
+               'loglevel: <logging_level,  # default is 'info'
+               'maxbytes: <max_size_of_log_file>,  # in bytes
+               'backupcount': 1,  # backup count of rotating log files
+               'logfmt': '%(asctime)s - %(name)s - %(levelname)s - %(message)s' # output format of logging output
+    }
+
+    Default behavior is to send logging output to stdout if logging is not configured as
+    above.
+    	
+    """
+
+    try:
+        LOGPATH = cfg.logging['logpath']
+        LOGFILE = cfg.logging['logfile']
+        handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
+    except:
+        handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
+
+    """ set logging level """
+    LEVELS = {'debug': logging.DEBUG,
+              'info': logging.INFO,
+              'warning': logging.WARNING,
+              'error': logging.ERROR,
+              'critical': logging.CRITICAL
+    }
+    try:
+        loglevel = cfg.logging["loglevel"]
+    except:
+        loglevel = 'info'
+    level = LEVELS.get(loglevel, logging.INFO)
+    handler.setLevel(level)
+    
+    """ set logging format """
+    try:
+        formatter = logging.Formatter(cfg.logging["logfmt"])
+    else:
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)	
+
+    logging.getLogger(__name__).addHandler(handler)
+
 def main(*args_list):
     """Use command line-like arguments to execute
 
@@ -731,6 +783,9 @@ def main(*args_list):
         parser.print_help()
         _exit(1)
     args = parser.parse_args(args_list)
+
+    configure_log()
+
     logging.info("[main]{0}: {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
@@ -740,7 +795,6 @@ def main(*args_list):
     if args.s3_url is not None:
         S3_URL = args.s3_url
 
-
     ret = do_action(args)
     if not noprint:
         if pretty_print:
@@ -748,6 +802,9 @@ def main(*args_list):
         else:
             _pretty_print(ret, False)
     return ret
+
+""" Set up logging """
+logging.getLogger(__name__)
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
