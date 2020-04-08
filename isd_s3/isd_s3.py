@@ -48,6 +48,8 @@ try:
 except:
     pass
 
+log = logging.getLogger(__name__)
+
 _is_imported = False
 S3_url_env = 'S3_URL'
 credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
@@ -310,7 +312,7 @@ def list_buckets(buckets_only=False):
     Returns:
         (list) : list of buckets.
     """
-    logging.getLogger(__name__).info("inside [list_buckets]")
+    log.info("inside [list_buckets]")
     response = client.list_buckets()['Buckets']
     if buckets_only:
         return list(map(lambda x: x['Name'], response))
@@ -769,7 +771,7 @@ def configure_log():
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)	
 
-    logging.getLogger(__name__).addHandler(handler)
+    log.addHandler(handler)
     
 def main(*args_list):
     """Use command line-like arguments to execute
@@ -789,7 +791,7 @@ def main(*args_list):
 
     configure_log()
 
-    logging.getLogger(__name__).info("[main]{0}: {1}".format(sys.argv[0], args))
+    log.info("[main]{0}: {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
@@ -805,9 +807,6 @@ def main(*args_list):
         else:
             _pretty_print(ret, False)
     return ret
-
-""" Set up logging """
-logging.getLogger(__name__)
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
