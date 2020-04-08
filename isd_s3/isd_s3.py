@@ -43,10 +43,10 @@ import boto3
 import logging
 import multiprocessing
 
-#try:
-import isd_s3_config as cfg
-#except:
-#     pass
+try:
+    import isd_s3_config as cfg
+except:
+    pass
 
 _is_imported = False
 S3_url_env = 'S3_URL'
@@ -739,13 +739,13 @@ def configure_log():
     """
     from logging.handlers import RotatingFileHandler
 
-    # try:
-    LOGPATH = cfg.logging['logpath']
-    LOGFILE = cfg.logging['logfile']
-    handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
-    # except:
-    #    print("logging handler exception")
-    #    handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
+    try:
+        LOGPATH = cfg.logging['logpath']
+        LOGFILE = cfg.logging['logfile']
+        handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
+    except:
+        print("logging handler exception")
+        handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
 
     """ set logging level """
     LEVELS = {'debug': logging.DEBUG,
@@ -770,11 +770,6 @@ def configure_log():
 
     logging.getLogger(__name__).addHandler(handler)
     
-    print("logpath: {}".format(LOGPATH))
-    print("logfile: {}".format(LOGFILE))
-    print("loglevel: {}".format(level))
-    print("log forrmatt: {}".format(cfg.logging['logfmt']))
-
 def main(*args_list):
     """Use command line-like arguments to execute
 
