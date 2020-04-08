@@ -43,10 +43,8 @@ import boto3
 import logging
 import multiprocessing
 
-print ("\n".join(sys.path))
-
 #try:
-from isd_s3 import isd_s3_config as cfg
+import isd_s3_config as cfg
 #except:
 #     pass
 
