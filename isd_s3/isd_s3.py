@@ -773,6 +773,10 @@ def configure_log():
 
     log.addHandler(handler)
     
+    print ("logpath: {}".format(LOGPATH))
+    print ("logfile: {}".format(LOGFILE))
+    print ("loglevel: {}".format(level))
+    
 def main(*args_list):
     """Use command line-like arguments to execute
 
