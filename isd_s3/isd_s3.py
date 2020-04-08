@@ -737,6 +737,7 @@ def configure_log():
     above.
     	
     """
+    from logging.handlers import RotatingFileHandler
 
     try:
         LOGPATH = cfg.logging['logpath']
