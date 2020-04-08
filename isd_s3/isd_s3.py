@@ -45,10 +45,10 @@ import multiprocessing
 
 print ("\n".join(sys.path))
 
-try:
-     from isd_s3 import isd_s3_config as cfg
-except:
-     pass
+#try:
+from isd_s3 import isd_s3_config as cfg
+#except:
+#     pass
 
 _is_imported = False
 S3_url_env = 'S3_URL'
