@@ -753,7 +753,7 @@ def configure_log():
               'critical': logging.CRITICAL
     }
     try:
-        loglevel = cfg.logging["loglevel"]
+        loglevel = cfg.logging['loglevel']
     except:
         loglevel = 'info'
     level = LEVELS.get(loglevel, logging.INFO)
@@ -761,12 +761,17 @@ def configure_log():
     
     """ set logging format """
     try:
-        formatter = logging.Formatter(cfg.logging["logfmt"])
+        formatter = logging.Formatter(cfg.logging['logfmt'])
     except:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)	
 
     logging.getLogger(__name__).addHandler(handler)
+    
+    print("logpath: {}".format(LOGPATH))
+    print("logfile: {}".format(LOGFILE))
+    print("loglevel: {}".format(level))
+    print("log forrmatt: {}".format(cfg.logging['logfmt']))
 
 def main(*args_list):
     """Use command line-like arguments to execute
