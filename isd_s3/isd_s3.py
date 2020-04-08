@@ -310,6 +310,7 @@ def list_buckets(buckets_only=False):
     Returns:
         (list) : list of buckets.
     """
+    logging.getLogger(__name__).info("inside [list_buckets]")
     response = client.list_buckets()['Buckets']
     if buckets_only:
         return list(map(lambda x: x['Name'], response))
@@ -788,7 +789,7 @@ def main(*args_list):
 
     configure_log()
 
-    logging.info("[main]{0}: {1}".format(sys.argv[0], args))
+    logging.getLogger(__name__).info("[main]{0}: {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
