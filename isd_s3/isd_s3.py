@@ -744,6 +744,7 @@ def configure_log():
         LOGFILE = cfg.logging['logfile']
         handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
     except:
+    	print("logging handler exception")
         handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
 
     """ set logging level """
