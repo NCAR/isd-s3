@@ -752,6 +752,7 @@ def configure_log():
     level = LEVELS.get(cfg.logging['loglevel'], logging.INFO)
     logger.setLevel(level)
     
+    """ set up file and log format """
     try:
         LOGPATH = cfg.logging['logpath']
 
