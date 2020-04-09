@@ -48,7 +48,7 @@ try:
 except:
     pass
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 _is_imported = False
 S3_url_env = 'S3_URL'
@@ -312,7 +312,7 @@ def list_buckets(buckets_only=False):
     Returns:
         (list) : list of buckets.
     """
-    log.info("inside [list_buckets]")
+    logger.info("inside [list_buckets]")
     response = client.list_buckets()['Buckets']
     if buckets_only:
         return list(map(lambda x: x['Name'], response))
@@ -762,20 +762,16 @@ def configure_log():
     except:
         loglevel = 'info'
     level = LEVELS.get(loglevel, logging.INFO)
-    handler.setLevel(level)
+    logger.setLevel(level)
     
     """ set logging format """
     try:
         formatter = logging.Formatter(cfg.logging['logfmt'])
     except:
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.BASIC_FORMAT
     handler.setFormatter(formatter)	
 
-    log.addHandler(handler)
-    
-    print ("logpath: {}".format(LOGPATH))
-    print ("logfile: {}".format(LOGFILE))
-    print ("loglevel: {}".format(level))
+    logger.addHandler(handler)
     
 def main(*args_list):
     """Use command line-like arguments to execute
@@ -795,7 +791,7 @@ def main(*args_list):
 
     configure_log()
 
-    log.info("[main]{0}: {1}".format(sys.argv[0], args))
+    logger.info("[main]{0}: {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
