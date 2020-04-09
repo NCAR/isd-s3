@@ -312,7 +312,7 @@ def list_buckets(buckets_only=False):
     Returns:
         (list) : list of buckets.
     """
-    logger.info("inside [list_buckets]")
+    logger.info("Listing buckets")
     response = client.list_buckets()['Buckets']
     if buckets_only:
         return list(map(lambda x: x['Name'], response))
@@ -775,9 +775,6 @@ def configure_log():
         """ set up default stream handler if above throws an exception """
         logger.addHandler(logging.StreamHandler())
 
-    logger.info("test INFO log message")
-    logger.debug("test DEBUG log message")
-    
 def main(*args_list):
     """Use command line-like arguments to execute
 
