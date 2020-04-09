@@ -791,8 +791,6 @@ def main(*args_list):
         _exit(1)
     args = parser.parse_args(args_list)
 
-    configure_log()
-
     logger.info("Input command + args: {0} {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
@@ -811,6 +809,7 @@ def main(*args_list):
     return ret
 
 if __name__ == "__main__":
+    configure_log()
     main(*sys.argv[1:])
 else:
     client = _get_session()
