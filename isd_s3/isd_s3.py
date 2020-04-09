@@ -730,7 +730,7 @@ def configure_log():
     
     logging = {'logpath': <log_path>,
                'logfile: <log_file_name>,
-               'loglevel: <logging_level,  # default is 'info'
+               'loglevel: <logging_level,  # options are 'debug', 'info' (default), 'warning', 'error', 'critical'
                'maxbytes: <max_size_of_log_file>,  # in bytes
                'backupcount': 1,  # backup count of rotating log files
                'logfmt': '%(asctime)s - %(name)s - %(levelname)s - %(message)s' # output format of logging output
@@ -751,32 +751,29 @@ def configure_log():
     }
     level = LEVELS.get(cfg.logging['loglevel'], logging.INFO)
     logger.setLevel(level)
-
-    """ set up logging file/console handler """    
+    
     try:
         LOGPATH = cfg.logging['logpath']
+
         if (logger.level == logging.DEBUG):
-            LOGFILE = cfg.logging['dbgfile']
+            """ configure debug logger if in DEBUG mode """
+            DBGFILE = cfg.logging['dbgfile']
+            logging.basicConfig(filename=LOGPATH+'/'+DBGFILE,
+                                format=cfg.logging['dbgfmt'],
+                                level=logging.DEBUG)
         else:
+            """ set up log file handler """
             LOGFILE = cfg.logging['logfile']
-        handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
-    except:
-        print("logging handler exception")
-        handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
-
-    """ set logging format """
-    try:
-        if (logger.level == logging.DEBUG):
-            formatter = logging.Formatter(cfg.logging['dbgfmt'])
-        else:
+            handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,
+                                          maxBytes=cfg.logging['maxbytes'],
+                                          backupCount=cfg.logging['backupcount'])
             formatter = logging.Formatter(cfg.logging['logfmt'])
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
     except:
-        formatter = logging.BASIC_FORMAT
-    handler.setFormatter(formatter)	
+        """ set up default stream handler if above throws an exception """
+        logger.addHandler(logging.StreamHandler())
 
-    """ add handler to logger object """
-    logger.addHandler(handler)
-    
     logger.info("test INFO log message")
     logger.debug("test DEBUG log message")
     
