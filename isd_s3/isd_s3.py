@@ -742,14 +742,6 @@ def configure_log():
     """
     from logging.handlers import RotatingFileHandler
 
-    try:
-        LOGPATH = cfg.logging['logpath']
-        LOGFILE = cfg.logging['logfile']
-        handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
-    except:
-        print("logging handler exception")
-        handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
-
     """ set logging level """
     LEVELS = {'debug': logging.DEBUG,
               'info': logging.INFO,
@@ -757,21 +749,36 @@ def configure_log():
               'error': logging.ERROR,
               'critical': logging.CRITICAL
     }
-    try:
-        loglevel = cfg.logging['loglevel']
-    except:
-        loglevel = 'info'
-    level = LEVELS.get(loglevel, logging.INFO)
+    level = LEVELS.get(cfg.logging['loglevel'], logging.INFO)
     logger.setLevel(level)
-    
+
+    """ set up logging file/console handler """    
+    try:
+        LOGPATH = cfg.logging['logpath']
+        if (logger.level == logging.DEBUG):
+            LOGFILE = cfg.logging['dbgfile']
+        else:
+            LOGFILE = cfg.logging['logfile']
+        handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,maxBytes=cfg.logging['maxbytes'],backupCount=cfg.logging['backupcount'])
+    except:
+        print("logging handler exception")
+        handler = logging.StreamHandler(sys.stdout) # Log to stdout if LOGPATH/LOGFILE not defined
+
     """ set logging format """
     try:
-        formatter = logging.Formatter(cfg.logging['logfmt'])
+        if (logger.level == logging.DEBUG):
+            formatter = logging.Formatter(cfg.logging['dbgfmt'])
+        else:
+            formatter = logging.Formatter(cfg.logging['logfmt'])
     except:
         formatter = logging.BASIC_FORMAT
     handler.setFormatter(formatter)	
 
+    """ add handler to logger object """
     logger.addHandler(handler)
+    
+    logger.info("test INFO log message")
+    logger.debug("test DEBUG log message")
     
 def main(*args_list):
     """Use command line-like arguments to execute
@@ -791,7 +798,7 @@ def main(*args_list):
 
     configure_log()
 
-    logger.info("[main]{0}: {1}".format(sys.argv[0], args))
+    logger.info("Input command + args: {0} {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
