@@ -43,7 +43,13 @@ import boto3
 import logging
 import multiprocessing
 
-logging.getLogger("isd_s3")
+try:
+    import isd_s3_config as cfg
+except:
+    pass
+
+logger = logging.getLogger(__name__)
+
 _is_imported = False
 S3_url_env = 'S3_URL'
 credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
@@ -306,6 +312,7 @@ def list_buckets(buckets_only=False):
     Returns:
         (list) : list of buckets.
     """
+    logger.info("Listing buckets")
     response = client.list_buckets()['Buckets']
     if buckets_only:
         return list(map(lambda x: x['Name'], response))
@@ -716,6 +723,58 @@ def _exit(error):
 class ISD_S3_Exception(Exception):
     pass
 
+def configure_log():
+    """ Configure logging 
+    
+    Logging can be configured in the configuration file 'isd_s3_config.py' as follows:
+    
+    logging = {'logpath': <log_path>,
+               'logfile: <log_file_name>,
+               'loglevel: <logging_level,  # options are 'debug', 'info' (default), 'warning', 'error', 'critical'
+               'maxbytes: <max_size_of_log_file>,  # in bytes
+               'backupcount': 1,  # backup count of rotating log files
+               'logfmt': '%(asctime)s - %(name)s - %(levelname)s - %(message)s' # output format of logging output
+    }
+
+    Default behavior is to send logging output to stdout if logging is not configured as
+    above.
+    	
+    """
+    from logging.handlers import RotatingFileHandler
+
+    """ set logging level """
+    LEVELS = {'debug': logging.DEBUG,
+              'info': logging.INFO,
+              'warning': logging.WARNING,
+              'error': logging.ERROR,
+              'critical': logging.CRITICAL
+    }
+    level = LEVELS.get(cfg.logging['loglevel'], logging.INFO)
+    logger.setLevel(level)
+    
+    """ set up file and log format """
+    try:
+        LOGPATH = cfg.logging['logpath']
+
+        if (logger.level == logging.DEBUG):
+            """ configure debug logger if in DEBUG mode """
+            DBGFILE = cfg.logging['dbgfile']
+            logging.basicConfig(filename=LOGPATH+'/'+DBGFILE,
+                                format=cfg.logging['dbgfmt'],
+                                level=logging.DEBUG)
+        else:
+            """ set up log file handler """
+            LOGFILE = cfg.logging['logfile']
+            handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,
+                                          maxBytes=cfg.logging['maxbytes'],
+                                          backupCount=cfg.logging['backupcount'])
+            formatter = logging.Formatter(cfg.logging['logfmt'])
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+    except:
+        """ set up default stream handler if above throws an exception """
+        logger.addHandler(logging.StreamHandler())
+
 def main(*args_list):
     """Use command line-like arguments to execute
 
@@ -731,6 +790,8 @@ def main(*args_list):
         parser.print_help()
         _exit(1)
     args = parser.parse_args(args_list)
+
+    logger.info("Input command + args: {0} {1}".format(sys.argv[0], args))
     noprint = args.noprint
     pretty_print = args.prettyprint
     if args.use_local_config is True:
@@ -738,7 +799,6 @@ def main(*args_list):
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
     if args.s3_url is not None:
         S3_URL = args.s3_url
-
 
     ret = do_action(args)
     if not noprint:
@@ -749,6 +809,7 @@ def main(*args_list):
     return ret
 
 if __name__ == "__main__":
+    configure_log()
     main(*sys.argv[1:])
 else:
     client = _get_session()
