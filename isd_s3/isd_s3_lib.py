@@ -14,14 +14,9 @@ import yaml
 logger = logging.getLogger(__name__)
 
 _is_imported = False
-credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
 
 client = None
 
-
-# To use different profile, change AWS_PROFILE environment variable
-if credentials_file_env not in os.environ:
-    os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
 
 configuration = {
         'default_bucket' : None,
@@ -40,6 +35,10 @@ def configure(config_file=None):
 
 
     # Look for a different S3 url in environment
+    credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
+    # To use different profile, change AWS_PROFILE environment variable
+    if credentials_file_env not in os.environ:
+        os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
     # to use different object store, change S3_URL environment variable
     S3_url_env = 'S3_URL'
     if S3_url_env in os.environ:
@@ -236,6 +235,20 @@ def upload_object(bucket, local_file, key, metadata=None):
         meta_dict['Metadata'] = metadata
 
     return client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
+
+def _get_file_metadata(filename):
+    """Attempt to get metadata given filename."""
+    _, file_extension = os.path.splittext(filename)
+
+    file_extension = file_extension.lower()
+    metadata_functions = {
+            '.grb2' : None,
+            '.grb' : None,
+            '.nc4' : None,
+            '.nc' : None,
+            '.hd5' : None
+            }
+    return None
 
 def _get_filelist(local_dir, recursive=False, ignore=[]):
     """Returns local filelist.
