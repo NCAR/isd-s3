@@ -47,19 +47,10 @@ logger = logging.getLogger(__name__)
 _is_imported = False
 client = None
 
-def load_config():
-    """ Configure S3 credentials and URL.  S3_URL should be defined as an 
-        environment variable.  """
-
-    # S3_URL environment variable must be set to S3 URL address, unless it 
-    # is passed in via command line argument
-    if 'S3_URL' not in os.environ:
-        S3_URL = os.environ['S3_URL']
-
-    # To use different profile, change AWS_PROFILE environment variable
-    if 'AWS_SHARED_CREDENTIALS_FILE' not in os.environ:
-        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = '~/.aws/credentials'
-        logger.warning('Using local AWS credentials in ~/.aws/credentials')
+# S3_URL environment variable must be set to S3 URL address, unless it 
+# is passed in via command line argument
+if 'S3_URL' not in os.environ:
+    logger.error('Environment variable S3_URL must be set to a valid S3 URL')
 
 def _get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
