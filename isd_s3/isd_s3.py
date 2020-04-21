@@ -36,36 +36,30 @@ Actions:
 import pdb
 import sys
 import os
-import argparse
 import json
 import re
 import boto3
 import logging
 import multiprocessing
 
-try:
-    import isd_s3_config as cfg
-except:
-    pass
-
 logger = logging.getLogger(__name__)
 
 _is_imported = False
-S3_url_env = 'S3_URL'
-credentials_file_env = 'AWS_SHARED_CREDENTIALS_FILE'
-# to use different object store, change S3_URL environment variable
-S3_URL = 'https://stratus.ucar.edu'
-if S3_url_env in os.environ:
-    S3_URL = os.environ[S3_url_env]
-
 client = None
 
-DEFAULT_BUCKET='rda-data'
+def load_config():
+    """ Configure S3 credentials and URL.  S3_URL should be defined as an 
+        environment variable.  """
 
-# To use different profile, change AWS_PROFILE environment variable
-if credentials_file_env not in os.environ:
-    os.environ[credentials_file_env] = '/glade/u/home/rdadata/.aws/credentials'
+    # S3_URL environment variable must be set to S3 URL address, unless it 
+    # is passed in via command line argument
+    if 'S3_URL' not in os.environ:
+        S3_URL = os.environ['S3_URL']
 
+    # To use different profile, change AWS_PROFILE environment variable
+    if 'AWS_SHARED_CREDENTIALS_FILE' not in os.environ:
+        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = '~/.aws/credentials'
+        logger.warning('Using local AWS credentials in ~/.aws/credentials')
 
 def _get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
@@ -83,225 +77,6 @@ def _get_session(use_local_cred=False, _endpoint_url=S3_URL):
             service_name='s3',
             endpoint_url=_endpoint_url
             )
-
-def _get_parser():
-    """Creates and returns parser object.
-
-    Returns:
-        (argparse.ArgumentParser): Parser object from which to parse arguments.
-    """
-    description = "CLI to interact with s3.\nNote: To use optional arguments, place argument them before sub-command."
-    parser = argparse.ArgumentParser(
-            prog='isd_s3',
-            description=description,
-            formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    # Arguments that are always allowed
-    parser.add_argument('--noprint', '-np',
-            action='store_true',
-            required=False,
-            help="Do not print result of actions.")
-    parser.add_argument('--prettyprint', '-pp',
-            action='store_true',
-            required=False,
-            help="Pretty print result")
-    parser.add_argument('--use_local_config', '-ul',
-            required=False,
-            action='store_true',
-            help="Use your local credentials. (~/.aws/credentials)")
-    parser.add_argument('--s3_url',
-            type=str,
-            required=False,
-            metavar='<url>',
-            help="S3 url. Default: 'https://stratus.ucar.edu'")
-
-    # Mutually exclusive commands
-    actions_parser = parser.add_subparsers(title='Actions',
-            help='Use `tool [command] -h` for more info on command')
-    actions_parser.required = True
-    actions_parser.dest = 'command'
-
-    # Commands
-    lb_parser = actions_parser.add_parser(
-            "list_buckets",
-            aliases=['lb'],
-            help='lists Buckets',
-            description='Lists buckets')
-    lb_parser.add_argument('--buckets_only', '-bo',
-            action='store_true',
-            required=False,
-            help="Only return the bucket names")
-
-    del_parser = actions_parser.add_parser("delete",
-            aliases=['dl'],
-            help='Delete objects',
-            description='Delete objects')
-    del_parser.add_argument('--key', '-k',
-            type=str,
-            metavar='<key>',
-            required=True,
-            help="Object key to delete")
-    del_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Bucket from which to delete")
-
-    get_parser = actions_parser.add_parser("get_object",
-            aliases=['go'],
-            help='Pull object from store',
-            description='Pull object from store')
-    get_parser.add_argument('--key', '-k',
-            type=str,
-            metavar='<key>',
-            required=True,
-            help="Object key to pull")
-    get_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Bucket from which to pull object")
-
-    upload_mult_parser = actions_parser.add_parser("upload_mult",
-            aliases=['um'],
-            help='Upload multiple objects.',
-            description='Upload multiple objects.')
-    upload_mult_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Destination bucket.")
-    upload_mult_parser.add_argument('--local_dir', '-ld',
-            type=str,
-            metavar='<directory>',
-            required=True,
-            help="Directory to search for files.")
-    upload_mult_parser.add_argument('--key_prefix', '-kp',
-            type=str,
-            metavar='<prefix>',
-            required=False,
-            default="",
-            help="Prepend this string to key")
-    upload_mult_parser.add_argument('--recursive', '-r',
-            action='store_true',
-            required=False,
-            help="recursively search directory")
-    upload_mult_parser.add_argument('--dry_run', '-dr',
-            action='store_true',
-            required=False,
-            help="Does not upload files.")
-    upload_mult_parser.add_argument('--ignore', '-i',
-            type=str,
-            metavar='<ignore str>',
-            nargs='*',
-            default=[],
-            required=False,
-            help="directory to search for files")
-    upload_mult_parser.add_argument('--metadata', '-md',
-            type=str,
-            metavar='<dict str, or path to script>',
-            required=False,
-            help="Optionally provide metadata for an object. \
-                    This can be a function where file is passed.")
-
-    upload_parser = actions_parser.add_parser("upload",
-            aliases=['ul'],
-            help='Upload objects',
-            description='Upload objects')
-    upload_parser.add_argument('--local_file', '-lf',
-            type=str,
-            metavar='<filename>',
-            required=True,
-            help="local file to upload")
-    upload_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Destination bucket")
-    upload_parser.add_argument('--key', '-k',
-            type=str,
-            metavar='<key>',
-            required=True,
-            help="key given to object ")
-    upload_parser.add_argument('--metadata', '-md',
-            type=str,
-            metavar='<dict str>',
-            required=False,
-            help="Optionally provide metadata for an object")
-
-    du_parser = actions_parser.add_parser("disk_usage",
-            aliases=['du'],
-            help='Reports disc usage from objects',
-            description='List objects')
-    du_parser.add_argument('--regex', '-re',
-            type=str,
-            metavar='<regex>',
-            required=False,
-            help="Regular expression to match keys against")
-    du_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Bucket to list objects from")
-    du_parser.add_argument('prefix',
-            type=str,
-            nargs='?',
-            metavar='<prefix string>',
-            default="",
-            help="prefix to filter objects. E.g. ds084.1/test")
-    du_parser.add_argument('--block_size', '-k',
-            type=str,
-            metavar='<block size>',
-            required=False,
-            default="1MB",
-            help="Specify block size, e.g. 1KB, 500MB, etc")
-
-
-    lo_parser = actions_parser.add_parser("list_objects",
-            aliases=['lo'],
-            help='List objects',
-            description='List objects')
-    lo_parser.add_argument('--regex', '-re',
-            type=str,
-            metavar='<regex>',
-            required=False,
-            help="Regular expression to match keys against")
-    lo_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Bucket to list objects from")
-    lo_parser.add_argument('prefix',
-            type=str,
-            nargs='?',
-            metavar='<prefix string>',
-            default="",
-            help="prefix to filter objects. E.g. ds084.1/test")
-    lo_parser.add_argument('-ls',
-            action='store_true',
-            required=False,
-            help="List just the directory level")
-    lo_parser.add_argument('--keys_only', '-ko',
-            action='store_true',
-            required=False,
-            help="Only return the object keys")
-
-    meta_parser = actions_parser.add_parser("get_metadata",
-            aliases=['gm'],
-            help='Get Metadata of object',
-            description='Get Metadata of an object')
-    meta_parser.add_argument('--bucket', '-b',
-            type=str,
-            metavar='<bucket>',
-            required=True,
-            help="Bucket from which to retrieve metadata")
-    meta_parser.add_argument('--key', '-k',
-            type=str,
-            metavar='<key>',
-            required=True,
-            help="Key from which to retrieve metadata.")
-
-    return parser
 
 def list_buckets(buckets_only=False):
     """Lists all buckets.
@@ -633,72 +408,6 @@ def search_metadata(bucket, obj_regex=None, metadata_key=None):
 
     return matching_keys
 
-
-def _get_action_map():
-    """Gets a map between the command line 'commands' and functions.
-
-    TODO: Maybe parse the parser?? parser._actions[-1].choices['upload']._actions
-
-    Returns:
-        (dict): dict where keys are command strings and values are functions.
-    """
-    _map = {
-            "get_object" : get_object,
-            "go" : get_object,
-            "list_buckets" : list_buckets,
-            "lb" : list_buckets,
-            "list_objects" : list_objects,
-            "lo" : list_objects,
-            "get_metadata" : get_metadata,
-            "gm" : get_metadata,
-            "upload" : upload_object,
-            "ul" : upload_object,
-            "delete" : delete,
-            "dl" : delete,
-            "disk_usage" : disk_usage,
-            "du" : disk_usage,
-            "upload_mult" : upload_mult_objects,
-            "um" : upload_mult_objects
-            }
-    return _map
-
-def _remove_common_args(_dict):
-    """Removes global arguments from given dict.
-
-    Args:
-        _dict (dict) : dict where common args removed.
-        Note that _dict is not copied. Typically from argparse namespace.
-
-    Returns:
-        None
-    """
-    del _dict['noprint']
-    del _dict['prettyprint']
-    del _dict['s3_url']
-    del _dict['use_local_config']
-    del _dict['command']
-
-def do_action(args):
-    """Interprets the parser and kicks processes command
-
-    Args:
-        args (Namespace): Argument parser to find commands and sub-commands.
-
-    Returns:
-        None ## Maybe returns (str) or (dict)?
-    """
-    # Init Session
-    global client
-    client = _get_session(args.use_local_config)
-
-    func_map = _get_action_map()
-    command = args.command
-    prog = func_map[command]
-
-    args_dict = args.__dict__
-    _remove_common_args(args_dict)
-    return prog(**args_dict)
-
 def _pretty_print(struct, pretty_print=True):
     """pretty print output struct"""
     if struct is None:
@@ -723,95 +432,7 @@ def _exit(error):
 class ISD_S3_Exception(Exception):
     pass
 
-def configure_log():
-    """ Configure logging 
-    
-    Logging can be configured in the configuration file 'isd_s3_config.py' as follows:
-    
-    logging = {'logpath': <log_path>,
-               'logfile: <log_file_name>,
-               'loglevel: <logging_level,  # options are 'debug', 'info' (default), 'warning', 'error', 'critical'
-               'maxbytes: <max_size_of_log_file>,  # in bytes
-               'backupcount': 1,  # backup count of rotating log files
-               'logfmt': '%(asctime)s - %(name)s - %(levelname)s - %(message)s' # output format of logging output
-    }
-
-    Default behavior is to send logging output to stdout if logging is not configured as
-    above.
-    	
-    """
-    from logging.handlers import RotatingFileHandler
-
-    """ set logging level """
-    LEVELS = {'debug': logging.DEBUG,
-              'info': logging.INFO,
-              'warning': logging.WARNING,
-              'error': logging.ERROR,
-              'critical': logging.CRITICAL
-    }
-    level = LEVELS.get(cfg.logging['loglevel'], logging.INFO)
-    logger.setLevel(level)
-    
-    """ set up file and log format """
-    try:
-        LOGPATH = cfg.logging['logpath']
-
-        if (logger.level == logging.DEBUG):
-            """ configure debug logger if in DEBUG mode """
-            DBGFILE = cfg.logging['dbgfile']
-            logging.basicConfig(filename=LOGPATH+'/'+DBGFILE,
-                                format=cfg.logging['dbgfmt'],
-                                level=logging.DEBUG)
-        else:
-            """ set up log file handler """
-            LOGFILE = cfg.logging['logfile']
-            handler = RotatingFileHandler(LOGPATH+'/'+LOGFILE,
-                                          maxBytes=cfg.logging['maxbytes'],
-                                          backupCount=cfg.logging['backupcount'])
-            formatter = logging.Formatter(cfg.logging['logfmt'])
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-    except:
-        """ set up default stream handler if above throws an exception """
-        logger.addHandler(logging.StreamHandler())
-
-def main(*args_list):
-    """Use command line-like arguments to execute
-
-    Args:
-        args_list (unpacked list): list of args as they would be passed to command line.
-
-    Returns:
-        (dict, generally) : result of argument call.
-    """
-    parser = _get_parser()
-    args_list = list(args_list) # args_list is tuple
-    if len(args_list) == 0:
-        parser.print_help()
-        _exit(1)
-    args = parser.parse_args(args_list)
-
-    logger.info("Input command + args: {0} {1}".format(sys.argv[0], args))
-    noprint = args.noprint
-    pretty_print = args.prettyprint
-    if args.use_local_config is True:
-        # Default loacation is ~/.aws/credentials
-        del os.environ['AWS_SHARED_CREDENTIALS_FILE']
-    if args.s3_url is not None:
-        S3_URL = args.s3_url
-
-    ret = do_action(args)
-    if not noprint:
-        if pretty_print:
-            _pretty_print(ret)
-        else:
-            _pretty_print(ret, False)
-    return ret
-
-if __name__ == "__main__":
-    configure_log()
-    main(*sys.argv[1:])
-else:
+if __name__ != "__main__":
     client = _get_session()
     _is_imported = True
 
