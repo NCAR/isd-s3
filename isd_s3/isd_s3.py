@@ -382,7 +382,7 @@ def pretty_print(struct, pretty_print=True):
     else:
         print(json.dumps(struct, default=lambda x: x.__str__()))
 
-def exit(error):
+def exit_session(error):
     """Throw error or exit.
 
     Args:
