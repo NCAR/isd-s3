@@ -1,38 +1,13 @@
 #!/usr/bin/env python3
 """Interacts with s3 api.
 
-Usage:
+Example usage:
 ```
->>> isd_s3.py -h
-usage: isd_s3 [-h] [--noprint] [--prettyprint] [--use_local_config]
-              [--s3_url <url>]
-              {list_buckets,lb,delete,dl,get_object,go,upload_mult,um,upload,ul,disk_usage,du,list_objects,lo,get_metadata,gm}
-              ...
-
-CLI to interact with s3.
-Note: To use optional arguments, put them before sub-command.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --noprint, -np        Do not print result of actions.
-  --prettyprint, -pp    Pretty print result
-  --use_local_config, -ul
-                        Use your local credentials. (~/.aws/credentials)
-  --s3_url <url>        S3 url. Default: 'https://stratus.ucar.edu'
-
-Actions:
-  {list_buckets,lb,delete,dl,get_object,go,upload_mult,um,upload,ul,disk_usage,du,list_objects,lo,get_metadata,gm}
-                        Use `tool [command] -h` for more info on command
-    list_buckets (lb)   lists Buckets
-    delete (dl)         Delete objects
-    get_object (go)     Pull object from store
-    upload_mult (um)    Upload multiple objects.
-    upload (ul)         Upload objects
-    disk_usage (du)     Reports disc usage from objects
-    list_objects (lo)   List objects
-    get_metadata (gm)   Get Metadata of object
+>>> from isd_s3 import isd_s3
+>>> isd_s3.list_buckets()
 ```
 """
+
 import pdb
 import sys
 import os
@@ -51,6 +26,9 @@ client = None
 # is passed in via command line argument
 if 'S3_URL' not in os.environ:
     logger.error('Environment variable S3_URL must be set to a valid S3 URL')
+    raise
+else:
+    S3_URL = os.environ['S3_URL']
 
 def _get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
@@ -205,9 +183,6 @@ def regex_filter(contents, regex_str):
 
     return filtered_objects
 
-
-
-
 def get_metadata(bucket, key):
     """Gets metadata of a given object key.
 
@@ -336,7 +311,6 @@ def _interpret_metadata_str(metadata):
             return json.loads(metadata_str)
         return metadata_func
 
-
 def delete(bucket, key):
     """Deletes Key from given bucket.
 
@@ -426,4 +400,3 @@ class ISD_S3_Exception(Exception):
 if __name__ != "__main__":
     client = _get_session()
     _is_imported = True
-

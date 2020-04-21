@@ -359,5 +359,4 @@ def main(*args_list):
     return ret
 
 if __name__ == "__main__":
-    load_config()
     main(*sys.argv[1:])
