@@ -26,11 +26,11 @@ client = None
 # is passed in via command line argument
 if 'S3_URL' not in os.environ:
     logger.error('Environment variable S3_URL must be set to a valid S3 URL')
-    raise
+    raise Exception('Environment variable S3_URL must be set to a valid S3 URL')
 else:
     S3_URL = os.environ['S3_URL']
 
-def _get_session(use_local_cred=False, _endpoint_url=S3_URL):
+def get_session(use_local_cred=False, _endpoint_url=S3_URL):
     """Gets a boto3 session client.
     This should generally be executed after module load.
 
@@ -220,7 +220,7 @@ def upload_object(bucket, local_file, key, metadata=None):
 
     return client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
 
-def _get_filelist(local_dir, recursive=False, ignore=[]):
+def get_filelist(local_dir, recursive=False, ignore=[]):
     """Returns local filelist.
 
     Args:
@@ -289,7 +289,7 @@ def upload_mult_objects(bucket, local_dir, key_prefix="", recursive=False, ignor
             p.join()
 
 
-def _interpret_metadata_str(metadata):
+def interpret_metadata_str(metadata):
     """Determine what metadata string is,
     is it static json, an external script, or python func."""
 
@@ -373,7 +373,7 @@ def search_metadata(bucket, obj_regex=None, metadata_key=None):
 
     return matching_keys
 
-def _pretty_print(struct, pretty_print=True):
+def pretty_print(struct, pretty_print=True):
     """pretty print output struct"""
     if struct is None:
         pass
@@ -382,7 +382,7 @@ def _pretty_print(struct, pretty_print=True):
     else:
         print(json.dumps(struct, default=lambda x: x.__str__()))
 
-def _exit(error):
+def exit(error):
     """Throw error or exit.
 
     Args:

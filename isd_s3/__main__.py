@@ -315,7 +315,7 @@ def do_action(args):
     """
     # Init Session
     global client
-    client = _get_session(args.use_local_config)
+    client = get_session(args.use_local_config)
 
     func_map = _get_action_map()
     command = args.command
@@ -338,7 +338,7 @@ def main(*args_list):
     args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
         parser.print_help()
-        _exit(1)
+        exit(1)
     args = parser.parse_args(args_list)
 
     noprint = args.noprint
@@ -353,10 +353,11 @@ def main(*args_list):
     ret = do_action(args)
     if not noprint:
         if pretty_print:
-            _pretty_print(ret)
+            pretty_print(ret)
         else:
-            _pretty_print(ret, False)
+            pretty_print(ret, False)
     return ret
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
+    
