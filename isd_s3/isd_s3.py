@@ -398,5 +398,5 @@ class ISD_S3_Exception(Exception):
     pass
 
 if __name__ != "__main__":
-    client = _get_session()
+    client = get_session()
     _is_imported = True
