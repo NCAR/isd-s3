@@ -71,7 +71,7 @@ def _get_parser():
             type=str,
             required=False,
             metavar='<url>',
-            help="S3 url. Default: undefined")
+            help="S3 url. Default: https://s3.amazonaws.com/")
 
     # Mutually exclusive commands
     actions_parser = parser.add_subparsers(title='Actions',
@@ -315,7 +315,7 @@ def do_action(args):
     """
     # Init Session
     global client
-    client = get_session(args.use_local_config)
+    client = get_session(args.s3_url, args.use_local_config)
 
     func_map = _get_action_map()
     command = args.command
@@ -347,8 +347,13 @@ def main(*args_list):
     if args.use_local_config is True:
         # Default loacation is ~/.aws/credentials
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
-    if args.s3_url is not None:
-        os.environ['S3_URL'] = args.s3_url
+    if args.s3_url is None:
+        try:
+            args.s3_url = os.environ['S3_URL']
+        except KeyError:
+            logger.warning("S3 endpoint URL is not defined.  This may be passed via the \
+                            argument --s3_url or assigned to the environment variable 'S3_URL'. \
+                            Default URL is https://s3.amazonaws.com/.")        
 
     ret = do_action(args)
     if not noprint:

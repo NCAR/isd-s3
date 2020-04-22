@@ -22,29 +22,24 @@ logger = logging.getLogger(__name__)
 _is_imported = False
 client = None
 
-# S3_URL environment variable must be set to S3 URL address, unless it 
-# is passed in via command line argument
-if 'S3_URL' not in os.environ:
-    logger.error('Environment variable S3_URL must be set to a valid S3 URL')
-    raise Exception('Environment variable S3_URL must be set to a valid S3 URL')
-else:
-    S3_URL = os.environ['S3_URL']
-
-def get_session(use_local_cred=False, _endpoint_url=S3_URL):
+def get_session(endpoint_url=None, use_local_cred=False):
     """Gets a boto3 session client.
     This should generally be executed after module load.
 
     Args:
         use_local_cred (bool): Use personal credentials for session. Default False.
-        _endpoint_url: url to s3
+        endpoint_url: url to s3
 
     Returns:
         (botocore.client.S3): botocore client object
+    
+    See boto3 session and client reference at 
+    https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html
     """
     session = boto3.session.Session()
     return session.client(
             service_name='s3',
-            endpoint_url=_endpoint_url
+            endpoint_url=endpoint_url
             )
 
 def list_buckets(buckets_only=False):
