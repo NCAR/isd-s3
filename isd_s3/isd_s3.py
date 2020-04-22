@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 _is_imported = False
 client = None
 
-def get_session(endpoint_url=None, use_local_cred=False):
+def get_session(endpoint_url=endpoint_url, use_local_cred=False):
     """Gets a boto3 session client.
     This should generally be executed after module load.
 
