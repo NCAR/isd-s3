@@ -344,7 +344,7 @@ def main(*args_list):
     args = parser.parse_args(args_list)
 
     noprint = args.noprint
-    pretty_print = args.prettyprint
+    pp = args.prettyprint
 
     if args.use_local_config is True:
         # Default loacation is ~/.aws/credentials
@@ -361,10 +361,10 @@ def main(*args_list):
 
     ret = do_action(args)
     if not noprint:
-        if pretty_print:
+        if pp:
             pretty_print(ret)
         else:
-            pretty_print(ret, pretty_print=False)
+            pretty_print(ret, False)
     return ret
 
 if __name__ == "__main__":
