@@ -49,7 +49,7 @@ def _get_parser():
     """
     description = "CLI to interact with s3.\nNote: To use optional arguments, place argument them before sub-command."
     parser = argparse.ArgumentParser(
-            prog='isd_s3',
+            prog='isd_s3_cli',
             description=description,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
