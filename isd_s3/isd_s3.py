@@ -5,7 +5,7 @@ Example usage:
 ```
 >>> from isd_s3 import isd_s3
 >>> client = isd_s3.get_session()
->>> isd_s3.list_buckets()
+>>> isd_s3.list_buckets(client)
 ```
 """
 
@@ -21,7 +21,6 @@ import multiprocessing
 logger = logging.getLogger(__name__)
 
 _is_imported = False
-client = None
 
 def get_session(endpoint_url=None, use_local_cred=False):
     """Gets a boto3 session client.
@@ -46,10 +45,11 @@ def get_session(endpoint_url=None, use_local_cred=False):
             endpoint_url=endpoint_url
             )
 
-def list_buckets(buckets_only=False):
+def list_buckets(client=None, buckets_only=False):
     """Lists all buckets.
 
     Args:
+        client: boto3 client created by get_session()
         buckets_only (bool): Only return bucket names
 
     Returns:
