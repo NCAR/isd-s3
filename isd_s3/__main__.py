@@ -313,7 +313,6 @@ def do_action(args):
         None ## Maybe returns (str) or (dict)?
     """
     # Init Session
-    global client
     client = get_session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
 
     func_map = _get_action_map()

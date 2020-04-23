@@ -4,6 +4,7 @@
 Example usage:
 ```
 >>> from isd_s3 import isd_s3
+>>> client = isd_s3.get_session()
 >>> isd_s3.list_buckets()
 ```
 """
@@ -396,5 +397,4 @@ class ISD_S3_Exception(Exception):
     pass
 
 if __name__ != "__main__":
-    client = get_session()
     _is_imported = True
