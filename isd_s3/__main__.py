@@ -50,7 +50,7 @@ def _get_parser():
     """
     description = "CLI to interact with s3.\nNote: To use optional arguments, place argument them before sub-command."
     parser = argparse.ArgumentParser(
-            prog='isd_s3_cli',
+            prog='isd_s3',
             description=description,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
@@ -322,6 +322,10 @@ def do_action(args):
 
     args_dict = args.__dict__
     _remove_common_args(args_dict)
+    
+    # add client to keyword args since it's needed by functions in isd_s3.py
+    args_dict.update({'client': client})
+    
     return prog(**args_dict)
 
 def main(*args_list):
