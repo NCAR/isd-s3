@@ -45,7 +45,7 @@ def get_session(endpoint_url=None, use_local_cred=False):
             endpoint_url=endpoint_url
             )
 
-def list_buckets(client=None, buckets_only=False):
+def list_buckets(client=None, buckets_only=False, **kwargs):
     """Lists all buckets.
 
     Args:
@@ -61,11 +61,12 @@ def list_buckets(client=None, buckets_only=False):
         return list(map(lambda x: x['Name'], response))
     return response
 
-def directory_list(bucket, prefix="", ls=False, keys_only=False):
+def directory_list(bucket, client=None, prefix="", ls=False, keys_only=False):
     """Lists directories using a prefix, similar to POSIX ls
 
     Args:
         bucket (str): Name of s3 bucket.
+        client: boto3 client created by get_session()
         prefix (str): Prefix from which to filter.
         keys_only (bool): Only return the keys.
     """
@@ -108,7 +109,7 @@ def parse_block_size(block_size_str):
     return divisor
 
 
-def disk_usage(bucket, prefix="", regex=None, block_size='1MB'):
+def disk_usage(bucket, client=None, prefix="", regex=None, block_size='1MB'):
     """Returns the disk usage for a set of objects.
 
     Args:
@@ -118,14 +119,14 @@ def disk_usage(bucket, prefix="", regex=None, block_size='1MB'):
     Returns (dict): disk usage of objects>
 
     """
-    contents = list_objects(bucket, prefix, regex=regex)
+    contents = list_objects(bucket, prefix, client=client, regex=regex)
     total = 0
     divisor = parse_block_size(block_size)
     for _object in contents:
         total += _object['Size'] / divisor
     return {'disk_usage':total,'units':block_size}
 
-def list_objects(bucket, prefix="", ls=False, keys_only=False, regex=None):
+def list_objects(bucket, client=None, prefix="", ls=False, keys_only=False, regex=None):
     """Lists objects from a bucket, optionally matching _prefix.
 
     prefix should be heavily preferred.
@@ -182,7 +183,7 @@ def regex_filter(contents, regex_str):
 
     return filtered_objects
 
-def get_metadata(bucket, key):
+def get_metadata(bucket, key, client=None):
     """Gets metadata of a given object key.
 
     Args:
@@ -194,7 +195,7 @@ def get_metadata(bucket, key):
     """
     return client.head_object(Bucket=bucket, Key=key)['Metadata']
 
-def upload_object(bucket, local_file, key, metadata=None):
+def upload_object(bucket, local_file, key, client=None, metadata=None):
     """Uploads files to object store.
 
     Args:
@@ -244,7 +245,7 @@ def get_filelist(local_dir, recursive=False, ignore=[]):
             return filelist
     return filelist
 
-def upload_mult_objects(bucket, local_dir, key_prefix="", recursive=False, ignore=[], metadata=None, dry_run=False):
+def upload_mult_objects(bucket, local_dir, client=None, key_prefix="", recursive=False, ignore=[], metadata=None, dry_run=False):
     """Uploads files within a directory.
 
     Uses key from local files.
@@ -310,19 +311,20 @@ def interpret_metadata_str(metadata):
             return json.loads(metadata_str)
         return metadata_func
 
-def delete(bucket, key):
+def delete(bucket, key, client=None):
     """Deletes Key from given bucket.
 
     Args:
         bucket (str): Name of s3 bucket.
         key (str): Name of s3 object key.
+        client: boto3 client created by get_session()
 
     Returns:
         None
     """
     return client.delete_object(Bucket=bucket, Key=key)
 
-def get_object(bucket, key, write_dir='./'):
+def get_object(bucket, key, client=None, write_dir='./'):
     """Get's object from store.
 
     Writes to local dir
