@@ -354,6 +354,8 @@ def main(*args_list):
                             argument --s3_url or assigned to the environment variable 'S3_URL'. \
                             Default URL is https://s3.amazonaws.com/.")        
 
+    logger.info('s3_url arg: {}'.format(args.s3_url))
+
     ret = do_action(args)
     if not noprint:
         if pretty_print:
