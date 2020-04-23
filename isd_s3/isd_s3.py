@@ -37,6 +37,8 @@ def get_session(endpoint_url=None, use_local_cred=False):
     https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html
     """
     logger.debug('endpoint_url: {}'.format(endpoint_url))
+    logger.debug('using local credentials? {}'.format(use_local_cred))
+    
     session = boto3.session.Session()
     return session.client(
             service_name='s3',
