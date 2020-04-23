@@ -364,7 +364,7 @@ def main(*args_list):
         if pretty_print:
             pretty_print(ret)
         else:
-            pretty_print(ret, False)
+            pretty_print(ret, pretty_print=False)
     return ret
 
 if __name__ == "__main__":
