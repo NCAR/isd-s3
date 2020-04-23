@@ -38,6 +38,7 @@ import logging
 
 import isd_s3
 from isd_s3.isd_s3 import *
+from isd_s3.isd_s3 import client
 
 logger = logging.getLogger(__name__)
 
