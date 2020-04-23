@@ -32,7 +32,7 @@ Actions:
     get_metadata (gm)   Get Metadata of object
 ```
 """
-
+import os
 import sys
 import argparse
 import logging
@@ -354,6 +354,9 @@ def main(*args_list):
             logger.warning("S3 endpoint URL is not defined.  This may be passed via the \
                             argument --s3_url or assigned to the environment variable 'S3_URL'. \
                             Default URL is https://s3.amazonaws.com/.")        
+
+    logger.info("S3_URL: {}".format(os.environ['S3_URL']))
+    logger.info("AWS_SHARED_CREDENTIALS_FILE: {}".format(os.environ['AWS_SHARED_CREDENTIALS_FILE']))
 
     ret = do_action(args)
     if not noprint:
