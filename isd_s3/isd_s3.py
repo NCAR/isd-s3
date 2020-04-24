@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 
 _is_imported = False
 
-def get_session(endpoint_url=None, use_local_cred=False):
+def get_session(use_local_cred=False, **kwargs):
     """Gets a boto3 session client.
     This should generally be executed after module load.
 
     Args:
         use_local_cred (bool): Use personal credentials for session. Default False.
-        endpoint_url: url to s3
+        endpoint_url: url to s3.  Default is https://s3.amazonaws.com/
 
     Returns:
         (botocore.client.S3): botocore client object
@@ -45,34 +45,41 @@ def get_session(endpoint_url=None, use_local_cred=False):
             endpoint_url=endpoint_url
             )
 
-def list_buckets(client=None, buckets_only=False, **kwargs):
+def list_buckets(buckets_only=False, **kwargs):
     """Lists all buckets.
 
     Args:
-        client: boto3 client created by get_session()
+        client [REQUIRED]: boto3 client created by get_session()
         buckets_only (bool): Only return bucket names
 
     Returns:
         (list) : list of buckets.
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.list_buckets() requires keyword argument 'client'".format(__name__))
     logger.info("Listing buckets")
     response = client.list_buckets()['Buckets']
     if buckets_only:
         return list(map(lambda x: x['Name'], response))
     return response
 
-def directory_list(bucket, client=None, prefix="", ls=False, keys_only=False):
+def directory_list(prefix="", ls=False, keys_only=False, **kwargs):
     """Lists directories using a prefix, similar to POSIX ls
 
     Args:
-        bucket (str): Name of s3 bucket.
-        client: boto3 client created by get_session()
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        client [REQUIRED]: boto3 client created by get_session()
         prefix (str): Prefix from which to filter.
-        keys_only (bool): Only return the keys.
+        ls (bool): Defaut False
+        keys_only (bool): Only return the keys.  Default False.
     """
-    if prefix is None:
-        prefix = ""
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.directory_list() requires keyword argument 'bucket'".format(__name__))
+    if 'client' not in kwargs:
+    	raise TypeError("{}.directory_list() requires keyword argument 'client'".format(__name__))
+
     response = client.list_objects_v2(Bucket=bucket, Prefix=prefix, Delimiter='/')
+
     if 'CommonPrefixes' in response:
         return list(map(lambda x: x['Prefix'], response['CommonPrefixes']))
     if 'Contents' in response:
@@ -109,16 +116,24 @@ def parse_block_size(block_size_str):
     return divisor
 
 
-def disk_usage(bucket, client=None, prefix="", regex=None, block_size='1MB'):
+def disk_usage(prefix="", block_size='1MB', **kwargs):
     """Returns the disk usage for a set of objects.
 
     Args:
-        bucket (str): Name of s3 bucket.
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        client [REQUIRED]: boto3 session client created by get_session()
         prefix (str): Prefix from which to filter.
+        regex (str): regex string.  Default None
+        block_size (str): block size
 
     Returns (dict): disk usage of objects>
 
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.disk_usage() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.disk_usage() requires keyword argument 'bucket'".format(__name__))
+
     contents = list_objects(bucket, prefix, client=client, regex=regex)
     total = 0
     divisor = parse_block_size(block_size)
@@ -126,20 +141,26 @@ def disk_usage(bucket, client=None, prefix="", regex=None, block_size='1MB'):
         total += _object['Size'] / divisor
     return {'disk_usage':total,'units':block_size}
 
-def list_objects(bucket, client=None, prefix="", ls=False, keys_only=False, regex=None):
+def list_objects(prefix="", ls=False, keys_only=False, **kwargs):
     """Lists objects from a bucket, optionally matching _prefix.
 
     prefix should be heavily preferred.
 
     Args:
-        bucket (str): Name of s3 bucket.
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        client [REQUIRED]: boto3 session client created by get_session()
         prefix (str): Prefix from which to filter.
         ls (bool): Get 'directories'.
         keys_only (bool): Only return the keys.
+        regex (str): regex string
 
     Returns:
         (list) : list of objects in given bucket
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.list_objects() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.list_objects() requires keyword argument 'bucket'".format(__name__))
 
     if ls:
         return directory_list(bucket, prefix, keys_only)
@@ -183,30 +204,46 @@ def regex_filter(contents, regex_str):
 
     return filtered_objects
 
-def get_metadata(bucket, key, client=None):
+def get_metadata(**kwargs):
     """Gets metadata of a given object key.
 
     Args:
-        bucket (str): Name of s3 bucket.
-        key (str): Name of s3 object key.
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        client [REQUIRED]: boto3 session client created by get_session()
+        key (str) [REQUIRED]: Name of s3 object key.
 
     Returns:
         (dict) metadata of given object
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'bucket'".format(__name__))
+    if 'key' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'key'".format(__name__))
+
     return client.head_object(Bucket=bucket, Key=key)['Metadata']
 
-def upload_object(bucket, local_file, key, client=None, metadata=None):
+def upload_object(metadata=None, **kwargs):
     """Uploads files to object store.
 
     Args:
-        bucket (str): Name of s3 bucket.
-        local_file (str): Filename of local file.
-        key (str): Name of s3 object key.
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        local_file (str) [REQUIRED]: Filename of local file.
+        key (str) [REQUIRED]: Name of s3 object key.
         metadata (dict, str): dict or string representing key/value pairs.
 
     Returns:
         None
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'bucket'".format(__name__))
+    if 'local_file' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'local_file'".format(__name__))
+    if 'key' not in kwargs:
+    	raise TypeError("{}.get_metadata() requires keyword argument 'key'".format(__name__))
     if metadata is None:
         return client.upload_file(local_file, bucket, key)
 
@@ -220,15 +257,18 @@ def upload_object(bucket, local_file, key, client=None, metadata=None):
 
     return client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
 
-def get_filelist(local_dir, recursive=False, ignore=[]):
+def get_filelist(recursive=False, ignore=[], **kwargs):
     """Returns local filelist.
 
     Args:
-        local_dir (str): local directory to scan
+        local_dir (str) [REQUIRED]: local directory to scan
         recursive (bool): whether or not to recursively scan directory.
                           Does not follow symlinks.
         ignore (iterable[str]): strings to ignore.
     """
+    if 'local_dir' not in kwargs:
+    	raise TypeError("{}.get_filelist() requires keyword argument 'local_dir'".format(__name__))
+
     filelist = []
     for root,_dir,files in os.walk(local_dir, topdown=True):
         for _file in files:
@@ -245,14 +285,15 @@ def get_filelist(local_dir, recursive=False, ignore=[]):
             return filelist
     return filelist
 
-def upload_mult_objects(bucket, local_dir, client=None, key_prefix="", recursive=False, ignore=[], metadata=None, dry_run=False):
+def upload_mult_objects(key_prefix="", recursive=False, ignore=[], dry_run=False, **kwargs):
     """Uploads files within a directory.
 
     Uses key from local files.
 
     Args:
-        bucket (str): Name of s3 bucket.
-        local_dir (str): Name of directory to upload
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        local_dir (str) [REQUIRED]: Name of directory to upload
+        client [REQUIRED]: boto3 session client created by get_session()
         key_prefix (str): string to prepend to key.
             example: If file is 'test/file.txt' and prefix is 'mydataset/'
                      then, full key would be 'mydataset/test/file.txt'
@@ -268,7 +309,14 @@ def upload_mult_objects(bucket, local_dir, client=None, key_prefix="", recursive
         None
 
     """
-    filelist = _get_filelist(local_dir, recursive, ignore)
+    if 'client' not in kwargs:
+        raise TypeError("{}.upload_mult_objects() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+        raise TypeError("{}.upload_mult_objects() requires keyword argument 'bucket'".format(__name__))
+    if 'local_dir' not in kwargs:
+        raise TypeError("{}.upload_mult_objects() requires keyword argument 'local_dir'".format(__name__))
+
+    filelist = _get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
     if metadata is not None:
         func = _interpret_metadata_str(metadata)
     cpus = multiprocessing.cpu_count()
@@ -311,20 +359,27 @@ def interpret_metadata_str(metadata):
             return json.loads(metadata_str)
         return metadata_func
 
-def delete(bucket, key, client=None):
+def delete(**kwargs):
     """Deletes Key from given bucket.
 
     Args:
-        bucket (str): Name of s3 bucket.
-        key (str): Name of s3 object key.
-        client: boto3 client created by get_session()
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        key (str) [REQUIRED]: Name of s3 object key.
+        client [REQUIRED]: boto3 session client created by get_session()
 
     Returns:
         None
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.delete() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.delete() requires keyword argument 'bucket'".format(__name__))
+    if 'key' not in kwargs:
+    	raise TypeError("{}.delete() requires keyword argument 'key'".format(__name__))
+
     return client.delete_object(Bucket=bucket, Key=key)
 
-def get_object(bucket, key, client=None, write_dir='./'):
+def get_object(write_dir='./', **kwargs):
     """Get's object from store.
 
     Writes to local dir
@@ -332,22 +387,37 @@ def get_object(bucket, key, client=None, write_dir='./'):
     Args:
         bucket (str): Name of s3 bucket.
         key (str): Name of s3 object key.
+        client [REQUIRED]: boto3 session client created by get_session()
         write_dir (str): directory to write file to.
 
     Returns:
         None
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.get_object() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.get_object() requires keyword argument 'bucket'".format(__name__))
+    if 'key' not in kwargs:
+    	raise TypeError("{}.get_object() requires keyword argument 'key'".format(__name__))
+
     local_filename = os.path.basename(key)
     client.download_file(bucket, key, local_filename)
 
-def delete_mult(bucket, obj_regex=None, dry_run=False):
+def delete_mult(obj_regex=None, dry_run=False, **kwargs):
     """delete objects where keys match regex.
 
     Args:
-        bucket (str): Name of s3 bucket.
-        regex (str): Regular expression to match agains
+        bucket (str) [REQUIRED]: Name of s3 bucket.
+        client [REQUIRED]: boto3 session client created by get_session()
+        obj_regex (str): Regular expression to match against
+        dry_run (bool): Print delete command as a sanity check.  No action taken if True.
     """
-    all_keys = list_objects(bucket, regex=obj_regex, keys_only=True)
+    if 'client' not in kwargs:
+    	raise TypeError("{}.delete_mult() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.delete_mult() requires keyword argument 'bucket'".format(__name__))
+
+    all_keys = list_objects(bucket=bucket, client=client, regex=obj_regex, keys_only=True)
     matching_keys = []
     for key in all_objs:
         if dry_run:
@@ -355,16 +425,23 @@ def delete_mult(bucket, obj_regex=None, dry_run=False):
         else:
             delete(bucket, key)
 
-def search_metadata(bucket, obj_regex=None, metadata_key=None):
+def search_metadata(**kwargs):
     """Search metadata. Narrow search using regex for keys.
 
     Args:
         bucket (str): Name of s3 bucket.
-        regex (str): Regular expression to narrow search
+        client [REQUIRED]: boto3 session client created by get_session()
+        obj_regex (str): Regular expression to narrow search
+        metadata_key (str): dict key of metadata to search 
 
     Returns:
         (list): keys that match
     """
+    if 'client' not in kwargs:
+    	raise TypeError("{}.search_metadata() requires keyword argument 'client'".format(__name__))
+    if 'bucket' not in kwargs:
+    	raise TypeError("{}.search_metadata() requires keyword argument 'bucket'".format(__name__))
+
     all_keys = list_objects(bucket, regex=obj_regex, keys_only=True)
     matching_keys = []
     for key in all_keys:
