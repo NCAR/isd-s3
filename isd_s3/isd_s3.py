@@ -63,7 +63,7 @@ def list_buckets(buckets_only=False, **kwargs):
         client = kwargs['client']
 
     response = client.list_buckets()['Buckets']
-    if kwargs['buckets_only']:
+    if buckets_only:
         return list(map(lambda x: x['Name'], response))
     return response
 
