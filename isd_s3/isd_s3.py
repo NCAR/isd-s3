@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 
 _is_imported = False
 
-def get_session(use_local_cred=False, **kwargs):
+def get_session(**kwargs):
     """Gets a boto3 session client.
     This should generally be executed after module load.
 
     Args:
         use_local_cred (bool): Use personal credentials for session. Default False.
-        endpoint_url: url to s3.  Default is https://s3.amazonaws.com/
+        endpoint_url: url to s3. Default https://s3.amazonaws.com/
 
     Returns:
         (botocore.client.S3): botocore client object
@@ -36,8 +36,10 @@ def get_session(use_local_cred=False, **kwargs):
     See boto3 session and client reference at 
     https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html
     """
-    logger.debug('endpoint_url: {}'.format(endpoint_url))
-    logger.debug('using local credentials? {}'.format(use_local_cred))
+    try:
+        endpoint_url = kwargs['endpoint_url']
+    except KeyError:
+        endpoint_url = None
     
     session = boto3.session.Session()
     return session.client(
@@ -57,9 +59,11 @@ def list_buckets(buckets_only=False, **kwargs):
     """
     if 'client' not in kwargs:
     	raise TypeError("{}.list_buckets() requires keyword argument 'client'".format(__name__))
-    logger.info("Listing buckets")
+    else:
+        client = kwargs['client']
+
     response = client.list_buckets()['Buckets']
-    if buckets_only:
+    if kwargs['buckets_only']:
         return list(map(lambda x: x['Name'], response))
     return response
 
