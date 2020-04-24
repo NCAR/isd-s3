@@ -35,7 +35,7 @@ Actions:
 """
 import sys
 import os
-import isd_s3_lib
+from isd_s3 import isd_s3_lib
 import argparse
 import json
 import logging
