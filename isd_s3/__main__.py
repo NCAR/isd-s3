@@ -340,7 +340,7 @@ def main(*args_list):
     args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
         parser.print_help()
-        exit(1)
+        sys.exit(1)
     args = parser.parse_args(args_list)
 
     noprint = args.noprint
