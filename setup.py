@@ -39,4 +39,5 @@ setup(
         "Intended Audience :: Developers"
     ],
     python_requires='>=3.1',
+    entry_points={"console_scripts": ["isd_s3=isd_s3.__main__:main"]}
 )
