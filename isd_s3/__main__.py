@@ -32,12 +32,13 @@ Actions:
     get_metadata (gm)   Get Metadata of object
 ```
 """
+import os
 import sys
 import argparse
 import logging
-
+import pdb
 import isd_s3
-from isd_s3.isd_s3 import *
+#from isd_s3.isd_s3 import *
 
 logger = logging.getLogger(__name__)
 
@@ -313,7 +314,7 @@ def do_action(args):
         None ## Maybe returns (str) or (dict)?
     """
     # Init Session
-    client = get_session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
+    client = isd_s3.get_session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
 
     func_map = _get_action_map()
     command = args.command
@@ -321,10 +322,10 @@ def do_action(args):
 
     args_dict = args.__dict__
     _remove_common_args(args_dict)
-    
+
     # add client to keyword args since it's needed by functions in isd_s3.py
     args_dict.update({'client': client})
-    
+
     return prog(**args_dict)
 
 def main(*args_list):
@@ -355,7 +356,7 @@ def main(*args_list):
         except KeyError:
             logger.warning("S3 endpoint URL is not defined.  This may be passed via the \
                             argument --s3_url or assigned to the environment variable 'S3_URL'. \
-                            Default URL is https://s3.amazonaws.com/.")        
+                            Default URL is https://s3.amazonaws.com/.")
 
     logger.info('s3_url arg: {}'.format(args.s3_url))
 
@@ -369,4 +370,4 @@ def main(*args_list):
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
-    
+
