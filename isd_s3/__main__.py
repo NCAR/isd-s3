@@ -38,7 +38,6 @@ import argparse
 import logging
 import pdb
 import isd_s3
-#from isd_s3.isd_s3 import *
 
 logger = logging.getLogger(__name__)
 
