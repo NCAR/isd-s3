@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-from isd_s3.__main__ import main
 
 import sys
-import logging
 import os
+import logging
+from pathlib import Path
 from logging.handlers import RotatingFileHandler
 try:
     from configparser import ConfigParser, ExtendedInterpolation
@@ -38,7 +38,7 @@ def get_defult_log_config():
           }
     return default_config
 
-def configure_logging_from_file(ini_file):
+def configure_logging_from_file(ini_file=None):
     """Configure logging from .ini file
 
     Logging can be configured in the configuration file 'isd_s3.ini' as follows:
@@ -56,6 +56,9 @@ def configure_logging_from_file(ini_file):
     Default behavior is to send logging output to stdout if logging is not configured as
     above.
     """
+    if ini_file is None:
+        home = str(Path.home())
+        ini_file = os.path.join(home,'.aws','filename.ini')
     _cfg = read_config_parser(ini_file)
 
     default_config = get_defult_log_config()
