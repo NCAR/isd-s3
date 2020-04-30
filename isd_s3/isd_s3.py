@@ -25,7 +25,7 @@ _is_imported = False
 
 class Session(object):
 
-    def __init__(self, credentials_loc=None, endpoint_url=None, default_bucket=None,config_file=None):
+    def __init__(self, credentials_loc=None, endpoint_url=None, default_bucket=None, config_file=None):
 
 
         self.endpoint_url = self.get_endpoint_url(endpoint_url)

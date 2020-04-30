@@ -313,7 +313,7 @@ def do_action(args):
         None ## Maybe returns (str) or (dict)?
     """
     # Init Session
-    client = isd_s3.get_session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
+    session = isd_s3.Session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
 
     func_map = _get_action_map()
     command = args.command
