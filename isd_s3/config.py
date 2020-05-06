@@ -11,7 +11,8 @@ except:
     from ConfigParser import ConfigParser, ExtendedInterpolation
 
 logger = logging.getLogger(__name__)
-
+ISD_S3_DEFAULT_BUCKET = 'ISD_S3_DEFAULT_BUCKET'
+AWS_SHARED_CREDENTIALS_FILE = 'AWS_SHARED_CREDENTIALS_FILE'
 def read_config_parser(filename):
     """Get configuration parser."""
     # Load RDA configuration
@@ -111,38 +112,56 @@ def configure_logging(logpath, logfile, dbgfile, loglevel, maxbytes, backupcount
         logging.basicConfig(level=logging.INFO)
         logger.warning("Logging configuration failed.  All warnings and error messages will be directed to stdout.")
 
-def configure_environment():
-    """ Set environment variables for S3 configuration """
-    default_config = {
+def get_default_environment():
+    return {
             's3_url' : 'https://stratus.ucar.edu',
             'credentials' : None, # defaults to ~/.aws/credentials
             'bucket' : None
           }
 
-    # S3 URL
+def configure_environment_from_file(ini_file):
+    if ini_file is None:
+        home = str(Path.home())
+        ini_file = os.path.join(home,'.aws','filename.ini')
+    _cfg = read_config_parser(ini_file)
+
+    default_config = get_defult_environment()
     s3_url = _cfg.get('default', 's3_url')
-    os.environ['S3_URL'] = s3_url
-    logger.info('S3_URL is {}.'.format(s3_url))
+    credentials = _cfg.get('default', 'credentials')
+    default_bucket = _cfg.get('default', 'bucket')
+
+    configure_environment(s3_url, credentials, default_bucket)
+
+
+def configure_environment(s3_url, credentials, default_bucket):
+    """ Set environment variables for S3 configuration """
+
+    # S3 URL
+    if s3_url is not None:
+        os.environ['S3_URL'] = s3_url
+        logger.info('S3_URL is {}.'.format(s3_url))
 
     # AWS credentials file
-    credentials = _cfg.get('default', 'credentials')
     if credentials is not None:
-        os.environ['AWS_SHARED_CREDENTIALS_FILE'] = credentials
+        os.environ[AWS_SHARED_CREDENTIALS_FILE] = credentials
         logger.info('Credentials file set to {}'.format(credentials))
 
     # Default bucket name
-    default_bucket = _cfg.get('default', 'bucket')
     if default_bucket is not None:
-        logger.warning('Default bucket set to {}'.format(DEFAULT_BUCKET))
-        os.environ['ISD_S3_DEFAULT_BUCKET'] = credentials
+        os.environ[ISD_S3_DEFAULT_BUCKET] = credentials
+        logger.info('Default bucket set to {}'.format(default_bucket))
 
-    return {'endpoint' : s3_url,
-            'credentials_file': credentials,
-            'default_bucket': default_bucket
-            }
+def get_default_bucket():
+    if ISD_S3_DEFAULT_BUCKET in os.environ:
+        return os.environ[ISD_S3_DEFAULT_BUCKET]
+    return None
 
+def get_s3_url():
+    if S3_URL in os.environ:
+        return os.environ[S3_URL]
 
-if __name__ == '__main__':
-    configure_log()
-    configure_environment()
-    main(*sys.argv[1:])
+def get_credentials_file():
+    if AWS_SHARED_CREDENTIALS_FILE in os.environ:
+        return os.environ[AWS_SHARED_CREDENTIALS_FILE]
+    return None
+

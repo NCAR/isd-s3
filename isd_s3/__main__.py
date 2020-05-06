@@ -17,6 +17,7 @@ optional arguments:
   --prettyprint, -pp    Pretty print result
   --use_local_config, -ul
                         Use your local credentials. (~/.aws/credentials)
+  --credentials_file, -cf
   --s3_url <url>        S3 url. Default: 'https://stratus.ucar.edu'
 
 Actions:
@@ -38,6 +39,7 @@ import argparse
 import logging
 import pdb
 import isd_s3
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,16 @@ def _get_parser():
             required=False,
             metavar='<url>',
             help="S3 url. Default: https://s3.amazonaws.com/")
+    parser.add_argument('--default_bucket', '-db',
+            type=str,
+            required=False,
+            metavar='<bucket name>',
+            help="Default bucket")
+    parser.add_argument('--credentials_file', '-cf',
+            type=str,
+            required=False,
+            metavar='<credentials file>',
+            help="Location of s3 credentials. See https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html")
 
     # Mutually exclusive commands
     actions_parser = parser.add_subparsers(title='Actions',
@@ -349,15 +361,12 @@ def main(*args_list):
     if args.use_local_config is True:
         # Default loacation is ~/.aws/credentials
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
-    if args.s3_url is None:
-        try:
-            args.s3_url = os.environ['S3_URL']
-        except KeyError:
-            logger.warning("S3 endpoint URL is not defined.  This may be passed via the \
-                            argument --s3_url or assigned to the environment variable 'S3_URL'. \
-                            Default URL is https://s3.amazonaws.com/.")
+    # Need to have a default s3_url
+    if args.s3_url is None and config.get_s3_url() is None:
+        pass
 
-    logger.info('s3_url arg: {}'.format(args.s3_url))
+
+    config.configure_environment(args.s3_url, args.credentials_file, args.default_bucket)
 
     ret = do_action(args)
     if not noprint:

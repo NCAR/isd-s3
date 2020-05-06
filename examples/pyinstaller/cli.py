@@ -9,5 +9,5 @@ if __name__ == '__main__':
     # config.configure_logging(**config.get_default_log_config())
     rda_config = '/glade/u/home/rdadata/.aws/isd_s3_config'
     config.configure_logging_from_file(rda_config)
-    config.configure_environment(rda_config)
+    config.configure_environment_from_file(rda_config)
     main(*sys.argv[1:])
