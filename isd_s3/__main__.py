@@ -119,7 +119,7 @@ def _get_parser():
     del_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Bucket from which to delete")
 
     get_parser = actions_parser.add_parser("get_object",
@@ -134,7 +134,7 @@ def _get_parser():
     get_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Bucket from which to pull object")
 
     upload_mult_parser = actions_parser.add_parser("upload_mult",
@@ -144,7 +144,7 @@ def _get_parser():
     upload_mult_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Destination bucket.")
     upload_mult_parser.add_argument('--local_dir', '-ld',
             type=str,
@@ -191,7 +191,7 @@ def _get_parser():
     upload_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Destination bucket")
     upload_parser.add_argument('--key', '-k',
             type=str,
@@ -216,7 +216,7 @@ def _get_parser():
     du_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Bucket to list objects from")
     du_parser.add_argument('prefix',
             type=str,
@@ -243,7 +243,7 @@ def _get_parser():
     lo_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Bucket to list objects from")
     lo_parser.add_argument('prefix',
             type=str,
@@ -267,7 +267,7 @@ def _get_parser():
     meta_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
-            required=True,
+            required=False,
             help="Bucket from which to retrieve metadata")
     meta_parser.add_argument('--key', '-k',
             type=str,

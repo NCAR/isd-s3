@@ -17,21 +17,27 @@ import re
 import boto3
 import logging
 import multiprocessing
+import config
 
 logger = logging.getLogger(__name__)
 
 class Session(object):
 
-    def __init__(self, credentials_loc=None, endpoint_url=None, default_bucket=None, config_file=None):
+    def __init__(self, endpoint_url=None, credentials_loc=None, default_bucket=None):
+        """Session constructor
+
+        Args:
+            endpoint_url (str): The s3 url to connect to.
+            credentials_loc (str): location of the credentials file.
+                                   (default: ~/.aws/credentials)
+            default_bucket (str): bucket to use if not specified explicitly.
+        """
 
 
-        self.endpoint_url = self.get_endpoint_url(endpoint_url)
-        self.client = self.get_session(endpoint_url)
+        config.configure_environment(endpoint_url, credentials_loc, default_bucket)
+        self.client = self.get_session()
 
-    def get_endpoint_url(self, endpoint_url=None):
-        pass
-
-    def get_session(self, endpoint_url ):
+    def get_session(self, endpoint_url=None):
         """Gets a boto3 session client.
         This should generally be executed after module load.
 
@@ -45,10 +51,12 @@ class Session(object):
         See boto3 session and client reference at
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html
         """
-        try:
-            endpoint_url = kwargs['endpoint_url']
-        except KeyError:
-            endpoint_url = None
+        if endpoint_url is None:
+            s3_url = config.get_s3_url()
+            if s3_url is None:
+                s3_url = config.get_default_environment()['s3_url']
+            endpoint_url = s3_url
+
 
         session = boto3.session.Session()
         return session.client(
@@ -56,46 +64,48 @@ class Session(object):
                 endpoint_url=endpoint_url
                 )
 
-    def list_buckets(**kwargs):
+    def list_buckets(self, buckets_only=False):
         """Lists all buckets.
 
         Args:
-            client (botocore.client.S3) [REQUIRED]: boto3 client created by get_session()
             buckets_only (bool): Only return bucket names. Default False.
 
         Returns:
             (list) : list of buckets.
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.list_buckets() requires keyword argument 'client'".format(__name__))
-        else:
-            client = kwargs['client']
-        try:
-            buckets_only = kwargs['buckets_only']
-        except KeyError:
-            buckets_only = False
-
-        response = client.list_buckets()['Buckets']
+        response = self.client.list_buckets()['Buckets']
         if buckets_only:
             return list(map(lambda x: x['Name'], response))
         return response
 
-    def directory_list(bucket=None, client=None, prefix="", ls=False, keys_only=False):
+    def get_bucket(bucket):
+        """Returns default bucket if bucket not defined.
+        Otherwise raises exception.
+        """
+        if bucket is not None:
+            return bucket
+
+        env_bucket = config.get_default_bucket()
+        if env_bucket is None:
+            error_msg = 'Default bucket not specified, or available in "' + \
+                     config.ISD_S3_DEFAULT_BUCKET + '" environment variable'
+            logger.error(error_msg)
+            raise ISD_S3_Exception(error_msg)
+        return env_bucket
+
+
+    def directory_list(self, bucket=None, prefix="", ls=False, keys_only=False):
         """Lists directories using a prefix, similar to POSIX ls
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
+            bucket (str): Name of s3 bucket.
             client (botocore.client.S3) [REQUIRED]: boto3 client created by get_session()
             prefix (str): Prefix from which to filter.
             ls (bool): Defaut False
             keys_only (bool): Only return the keys.  Default False.
         """
-        if bucket is None:
-            raise TypeError("{}.directory_list() requires keyword argument 'bucket'".format(__name__))
-        if client is None:
-            raise TypeError("{}.directory_list() requires keyword argument 'client'".format(__name__))
-
-        response = client.list_objects_v2(Bucket=bucket, Prefix=prefix, Delimiter='/')
+        bucket = self.get_bucket(bucket)
+        response = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix, Delimiter='/')
 
         if 'CommonPrefixes' in response:
             return list(map(lambda x: x['Prefix'], response['CommonPrefixes']))
@@ -103,37 +113,9 @@ class Session(object):
             return list(map(lambda x: x['Key'], response['Contents']))
         return [] # Can't find anything
 
-    def parse_block_size(block_size_str):
-        """Gets the divisor for number of bytes given string.
-
-        Example:
-            '1MB' yields 1000000
-
-        """
-        units = {
-                'KB' : 1000,
-                'MB' : 1000000,
-                'GB' : 1000000000,
-                'TB' : 1000000000000,
-                }
-        if len(block_size_str) < 3:
-            print('block_size doesn\'t have enough information')
-            print('defaulting to 1KB')
-            block_size_str = '1KB'
-        unit = block_size_str[-2:].upper()
-        number = int(block_size_str[:-2])
-        if unit not in units:
-            print('unrecognized unit.')
-            print('defaulting to 1KB')
-            unit = 'KB'
-            number = 1
-
-        base_divisor = units[unit]
-        divisor = base_divisor * number
-        return divisor
 
 
-    def disk_usage(bucket=None, client=None, prefix="", block_size='1MB'):
+    def disk_usage(bucket=None, prefix="", block_size='1MB'):
         """Returns the disk usage for a set of objects.
 
         Args:
@@ -146,19 +128,16 @@ class Session(object):
         Returns (dict): disk usage of objects>
 
         """
-        if 'bucket' is None:
-        	raise TypeError("{}.disk_usage() requires keyword argument 'bucket'".format(__name__))
-        if 'client' is None:
-        	raise TypeError("{}.disk_usage() requires keyword argument 'client'".format(__name__))
+        bucket = self.get_bucket(bucket)
 
-        contents = list_objects(bucket, prefix, client=client, regex=regex)
+        contents = self.list_objects(bucket, prefix, regex=regex)
         total = 0
         divisor = parse_block_size(block_size)
         for _object in contents:
             total += _object['Size'] / divisor
         return {'disk_usage':total,'units':block_size}
 
-    def list_objects(bucket=None, client=None, prefix="", ls=False, keys_only=False):
+    def list_objects(self, bucket=None, prefix="", ls=False, keys_only=False):
         """Lists objects from a bucket, optionally matching _prefix.
 
         prefix should be heavily preferred.
@@ -174,13 +153,10 @@ class Session(object):
         Returns:
             (list) : list of objects in given bucket
         """
-        if 'bucket' is None:
-        	raise TypeError("{}.list_objects() requires keyword argument 'bucket'".format(__name__))
-        if 'client' is None:
-        	raise TypeError("{}.list_objects() requires keyword argument 'client'".format(__name__))
+        bucket = self.get_bucket(bucket)
 
         if ls:
-            return directory_list(bucket, prefix, keys_only)
+            return self.directory_list(bucket, prefix, keys_only)
 
         contents = []
 
@@ -195,13 +171,13 @@ class Session(object):
                     ContinuationToken=response['NextContinuationToken'])
             contents.extend(response['Contents'])
         if regex is not None:
-            contents = regex_filter(contents, regex)
+            contents = self.regex_filter(contents, regex)
         if keys_only:
             return list(map(lambda x: x['Key'], contents))
 
         return contents
 
-    def regex_filter(contents, regex_str):
+    def regex_filter(self, contents, regex_str):
         """Filters contents using regular expression.
 
         Args:
@@ -221,23 +197,17 @@ class Session(object):
 
         return filtered_objects
 
-    def get_metadata(**kwargs):
+    def get_metadata(self, key, bucket=None):
         """Gets metadata of a given object key.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
-            client [REQUIRED]: boto3 session client created by get_session()
-            key (str) [REQUIRED]: Name of s3 object key.
+            bucket (str) : Name of s3 bucket.
+            key (str) : Name of s3 object key.
 
         Returns:
             (dict) metadata of given object
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'bucket'".format(__name__))
-        if 'key' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'key'".format(__name__))
+        bucket = self.get_bucket(bucket)
 
         return client.head_object(Bucket=bucket, Key=key)['Metadata']
 
@@ -522,6 +492,35 @@ def exit_session(error):
     else:
         sys.stdout.write(str(error))
         exit(1)
+
+def parse_block_size(block_size_str):
+    """Gets the divisor for number of bytes given string.
+
+    Example:
+        '1MB' yields 1000000
+
+    """
+    units = {
+            'KB' : 1000,
+            'MB' : 1000000,
+            'GB' : 1000000000,
+            'TB' : 1000000000000,
+            }
+    if len(block_size_str) < 3:
+        print('block_size doesn\'t have enough information')
+        print('defaulting to 1KB')
+        block_size_str = '1KB'
+    unit = block_size_str[-2:].upper()
+    number = int(block_size_str[:-2])
+    if unit not in units:
+        print('unrecognized unit.')
+        print('defaulting to 1KB')
+        unit = 'KB'
+        number = 1
+
+    base_divisor = units[unit]
+    divisor = base_divisor * number
+    return divisor
 
 class ISD_S3_Exception(Exception):
     pass
