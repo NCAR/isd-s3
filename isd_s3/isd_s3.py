@@ -20,9 +20,6 @@ import multiprocessing
 
 logger = logging.getLogger(__name__)
 
-_is_imported = False
-
-
 class Session(object):
 
     def __init__(self, credentials_loc=None, endpoint_url=None, default_bucket=None, config_file=None):
@@ -513,14 +510,6 @@ class Session(object):
 
         return matching_keys
 
-    def pretty_print(struct, pretty_print=True):
-        """pretty print output struct"""
-        if struct is None:
-            pass
-        elif pretty_print:
-            print(json.dumps(struct, indent=4, default=lambda x: x.__str__()))
-        else:
-            print(json.dumps(struct, default=lambda x: x.__str__()))
 
 def exit_session(error):
     """Throw error or exit.
@@ -537,5 +526,3 @@ def exit_session(error):
 class ISD_S3_Exception(Exception):
     pass
 
-if __name__ != "__main__":
-    _is_imported = True

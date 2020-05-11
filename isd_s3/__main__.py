@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Interacts with s3 api.
 
 Usage:
@@ -38,8 +39,13 @@ import sys
 import argparse
 import logging
 import pdb
-import isd_s3
-import config
+
+if __package__ is None or __package__ == "":
+    import isd_s3
+    import config
+else:
+    from . import isd_s3
+    from . import config
 
 logger = logging.getLogger(__name__)
 
@@ -314,6 +320,7 @@ def _remove_common_args(_dict):
     del _dict['s3_url']
     del _dict['use_local_config']
     del _dict['command']
+    del _dict['default_bucket']
 
 def do_action(args):
     """Interprets the parser and kicks processes command
@@ -339,6 +346,15 @@ def do_action(args):
 
     return prog(**args_dict)
 
+def _pretty_print(struct, pretty_print=True):
+    """pretty print output struct"""
+    if struct is not None:
+        if pretty_print:
+            print(json.dumps(struct, indent=4, default=lambda x: x.__str__()))
+        else:
+            print(json.dumps(struct, default=lambda x: x.__str__()))
+
+
 def main(*args_list):
     """Use command line-like arguments to execute
 
@@ -354,6 +370,7 @@ def main(*args_list):
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args(args_list)
+    pdb.set_trace()
 
     noprint = args.noprint
     pp = args.prettyprint
@@ -363,18 +380,18 @@ def main(*args_list):
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
     # Need to have a default s3_url
     if args.s3_url is None and config.get_s3_url() is None:
-        pass
+        args.s3_url = config.get_default_environment('s3_url')
 
 
     config.configure_environment(args.s3_url, args.credentials_file, args.default_bucket)
 
-    ret = do_action(args)
+    result_json = do_action(args)
     if not noprint:
         if pp:
-            pretty_print(ret)
+            _pretty_print(result_json)
         else:
-            pretty_print(ret, False)
-    return ret
+            _pretty_print(result_json, False)
+    return result_json
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
