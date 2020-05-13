@@ -135,13 +135,13 @@ class Session(object):
             total += _object['Size'] / divisor
         return {'disk_usage':total,'units':block_size}
 
-    def list_objects(self, bucket=None, prefix="", ls=False, keys_only=False):
+    def list_objects(self, bucket=None, prefix="", ls=False, keys_only=False, regex=None):
         """Lists objects from a bucket, optionally matching _prefix.
 
         prefix should be heavily preferred.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
+            bucket (str): Name of s3 bucket.
             prefix (str): Prefix from which to filter.
             ls (bool): Get 'directories'.
             keys_only (bool): Only return the keys.
@@ -345,8 +345,8 @@ class Session(object):
         Writes to local dir
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
             key (str) [REQUIRED]: Name of s3 object key.
+            bucket (str): Name of s3 bucket.
             write_dir (str): directory to write file to.
 
         Returns:
