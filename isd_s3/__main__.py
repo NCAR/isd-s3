@@ -277,7 +277,7 @@ def _get_parser():
 
     return parser
 
-def _get_action_map():
+def _get_action(obj, command):
     """Gets a map between the command line 'commands' and functions.
 
     TODO: Maybe parse the parser?? parser._actions[-1].choices['upload']._actions
@@ -285,25 +285,24 @@ def _get_action_map():
     Returns:
         (dict): dict where keys are command strings and values are functions.
     """
-    _map = {
-            "get_object" : get_object,
-            "go" : get_object,
-            "list_buckets" : list_buckets,
-            "lb" : list_buckets,
-            "list_objects" : list_objects,
-            "lo" : list_objects,
-            "get_metadata" : get_metadata,
-            "gm" : get_metadata,
-            "upload" : upload_object,
-            "ul" : upload_object,
-            "delete" : delete,
-            "dl" : delete,
-            "disk_usage" : disk_usage,
-            "du" : disk_usage,
-            "upload_mult" : upload_mult_objects,
-            "um" : upload_mult_objects
+    # If command isn't the same as the method use map
+    command_map = {
+            "go" : 'get_object',
+            "lb" : 'list_buckets',
+            "lo" : 'list_objects',
+            "gm" : 'get_metadata',
+            "upload" : 'upload_object',
+            "ul" : 'upload_object',
+            "dl" : 'delete',
+            "du" : 'disk_usage',
+            "upload_mult" : 'upload_mult_objects',
+            "um" : 'upload_mult_objects'
             }
-    return _map
+    if command in command_map:
+        command = command_map[command]
+
+    func = getattr(obj, command)
+    return func
 
 def _remove_common_args(_dict):
     """Removes global arguments from given dict.
@@ -334,17 +333,13 @@ def do_action(args):
     # Init Session
     session = isd_s3.Session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
 
-    func_map = _get_action_map()
-    command = args.command
-    prog = func_map[command]
+    # Get function corresponding with command
+    function = _get_action(session, args.command)
 
-    args_dict = args.__dict__
-    _remove_common_args(args_dict)
+    # Remove global arguments
+    _remove_common_args(args.__dict__)
 
-    # add client to keyword args since it's needed by functions in isd_s3.py
-    args_dict.update({'client': client})
-
-    return prog(**args_dict)
+    return function(**args_dict)
 
 def _pretty_print(struct, pretty_print=True):
     """pretty print output struct"""
