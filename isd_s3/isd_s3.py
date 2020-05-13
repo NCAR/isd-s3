@@ -209,46 +209,43 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
-        return client.head_object(Bucket=bucket, Key=key)['Metadata']
+        return self.client.head_object(Bucket=bucket, Key=key)['Metadata']
 
-    def upload_object(self, local_file, metadata, bucket=None):
+    def upload_object(self, local_file, metadata=None, bucket=None):
         """Uploads files to object store.
 
         Args:
-            bucket (str) : Name of s3 bucket.
-            local_file (str) [REQUIRED]: Filename of local file.
-            key (str) [REQUIRED]: Name of s3 object key.
+            local_file (str): Filename of local file.
+            key (str): Name of s3 object key.
             metadata (dict, str): dict or string representing key/value pairs.
+            bucket (str) : Name of s3 bucket.
 
         Returns:
             None
         """
-        try:
-            metadata = kwargs['metadata']
-        except KeyError:
+        bucket = get_bucket(bucket)
+        if metadata is None:
             return client.upload_file(local_file, bucket, key)
 
         meta_dict = {'Metadata' : None}
-        if type(metadata) is str:
+        if isinstance(metadata, str):
             # Parse string or check if file exists
              meta_dict['Metadata'] = json.loads(metadata)
-        elif type(metadata) is dict:
+        elif isinstance(metadata, dict):
             #TODO assert it's a flat dict
             meta_dict['Metadata'] = metadata
 
-        return client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
+        return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
 
-    def get_filelist(local_dir, recursive=False, ignore=[]):
+    def get_filelist(self, local_dir, recursive=False, ignore=[]):
         """Returns local filelist.
 
         Args:
             local_dir (str) [REQUIRED]: local directory to scan
-            recursive (bool): whether or not to recursively scan directory.
+            recursive (bool): whether to recursively scan directory.
                               Does not follow symlinks.
             ignore (iterable[str]): strings to ignore.
         """
-        if 'local_dir' is None:
-        	raise TypeError("{}.get_filelist() requires keyword argument 'local_dir'".format(__name__))
 
         filelist = []
         for root,_dir,files in os.walk(local_dir, topdown=True):
@@ -266,22 +263,21 @@ class Session(object):
                 return filelist
         return filelist
 
-    def upload_mult_objects(**kwargs):
+    def upload_mult_objects(self, local_dir, key_prefix=None, bucket=None, recursive=False, ignore=[], metadata=None, dry_run=False):
         """Uploads files within a directory.
 
         Uses key from local files.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
+            bucket (str): Name of s3 bucket.
             local_dir (str) [REQUIRED]: Name of directory to upload
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
             key_prefix (str): string to prepend to key.
                 example: If file is 'test/file.txt' and prefix is 'mydataset/'
                          then, full key would be 'mydataset/test/file.txt'
             recursive (bool): Recursively search directory,
             ignore (iterable[str]): does not upload if string matches
-            metadata (func or str): If func, execute giving filename as argument. Expects
-                                    metadata return code.
+            metadata (func or str): If func, execute giving filename as argument.
+                                    Expects metadata return code.
                                     If json str, all objects will have this placed in it.
                                     If location of script, calls script and captures output as
                                     the value of metadata.
@@ -290,36 +286,11 @@ class Session(object):
             None
 
         """
-        if 'client' not in kwargs:
-            raise KeyError("{}.upload_mult_objects() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-            raise KeyError("{}.upload_mult_objects() requires keyword argument 'bucket'".format(__name__))
-        if 'local_dir' not in kwargs:
-            raise KeyError("{}.upload_mult_objects() requires keyword argument 'local_dir'".format(__name__))
-        try:
-            key_prefix = kwargs['key_prefix']
-        except KeyError:
-            key_prefix = ""
-        try:
-            recursive = kwargs['recursive']
-        except KeyError:
-            recursive = False
-        try:
-            ignore = kwargs['ignore']
-        except KeyError:
-            ignore = []
-        try:
-            dry_run = kwargs['dry_run']
-        except KeyError:
-            dry_run = False
-        try:
-            metadata = kwargs['metadata']
-        except KeyError:
-            metadata = None
+        bucket = get_bucket(bucket)
 
-        filelist = _get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
+        filelist = self._get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
         if metadata is not None:
-            func = _interpret_metadata_str(metadata)
+            func = self._interpret_metadata_str(metadata)
         cpus = multiprocessing.cpu_count()
         for _file in filelist:
             key = key_prefix + _file
@@ -337,7 +308,7 @@ class Session(object):
                 p.start()
                 p.join()
 
-    def interpret_metadata_str(metadata):
+    def interpret_metadata_str(self, metadata):
         """Determine what metadata string is,
         is it static json, an external script, or python func."""
 
@@ -359,27 +330,19 @@ class Session(object):
                 return json.loads(metadata_str)
             return metadata_func
 
-    def delete(**kwargs):
+    def delete(self, key, bucket=None):
         """Deletes Key from given bucket.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
             key (str) [REQUIRED]: Name of s3 object key.
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
 
         Returns:
             None
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.delete() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-        	raise KeyError("{}.delete() requires keyword argument 'bucket'".format(__name__))
-        if 'key' not in kwargs:
-        	raise KeyError("{}.delete() requires keyword argument 'key'".format(__name__))
-
+        bucket = get_bucket(bucket)
         return client.delete_object(Bucket=bucket, Key=key)
 
-    def get_object(**kwargs):
+    def get_object(self, key, bucket=None, write_dir='./'):
         """Get's object from store.
 
         Writes to local dir
@@ -387,85 +350,48 @@ class Session(object):
         Args:
             bucket (str) [REQUIRED]: Name of s3 bucket.
             key (str) [REQUIRED]: Name of s3 object key.
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
             write_dir (str): directory to write file to.
 
         Returns:
             None
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.get_object() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-        	raise KeyError("{}.get_object() requires keyword argument 'bucket'".format(__name__))
-        if 'key' not in kwargs:
-        	raise KeyError("{}.get_object() requires keyword argument 'key'".format(__name__))
-        try:
-            write_dir = kwargs['write_dir']
-        except KeyError:
-            write_dir = './'
-
         local_filename = os.path.basename(key)
-        client.download_file(bucket, key, local_filename)
+        self.client.download_file(bucket, key, local_filename)
 
-    def delete_mult(**kwargs):
+    def delete_mult(self, bucket=None, obj_regex=None, dry_run=False):
         """delete objects where keys match regex.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
+            bucket (str) : Name of s3 bucket.
             obj_regex (str): Regular expression to match against
             dry_run (bool): Print delete command as a sanity check.  No action taken if True.
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.delete_mult() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-        	raise KeyError("{}.delete_mult() requires keyword argument 'bucket'".format(__name__))
-        try:
-            obj_regex = kwargs['obj_regex']
-        except KeyError:
-            obj_regex = None
-        try:
-            dry_run = kwargs['dry_run']
-        except KeyError:
-            dry_run = False
-
-        all_keys = list_objects(bucket=bucket, client=client, regex=obj_regex, keys_only=True)
+        bucket = get_bucket(None)
+        all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True)
         matching_keys = []
         for key in all_objs:
             if dry_run:
                 print('Deleting:' + bucket + '/' + key)
             else:
-                delete(bucket, key)
+                self.delete(bucket, key)
 
-    def search_metadata(**kwargs):
+    def search_metadata(self, bucket=None, obj_regex=None, metadata_key=None):
         """Search metadata. Narrow search using regex for keys.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
+            bucket (str): Name of s3 bucket.
             obj_regex (str): Regular expression to narrow search
             metadata_key (str): dict key of metadata to search
 
         Returns:
             (list): keys that match
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.search_metadata() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-        	raise KeyError("{}.search_metadata() requires keyword argument 'bucket'".format(__name__))
-        try:
-            obj_regex = kwargs['obj_regex']
-        except KeyError:
-            obj_regex = None
-        try:
-            metadata_key = kwargs['metadata_key']
-        except KeyError:
-            metadata_key = None
+        bucket = get_bucket(bucket)
 
-        all_keys = list_objects(bucket, regex=obj_regex, keys_only=True)
+        all_keys = self.list_objects(bucket, regex=obj_regex, keys_only=True)
         matching_keys = []
         for key in all_keys:
-            return_dict = get_metadata(bucket, key)
+            return_dict = self.get_metadata(bucket, key)
             if metadata_key in return_dict.keys():
                 matching_keys.append(key)
 
