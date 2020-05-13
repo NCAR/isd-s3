@@ -211,12 +211,11 @@ class Session(object):
 
         return client.head_object(Bucket=bucket, Key=key)['Metadata']
 
-    def upload_object(**kwargs):
+    def upload_object(self, local_file, metadata, bucket=None):
         """Uploads files to object store.
 
         Args:
-            bucket (str) [REQUIRED]: Name of s3 bucket.
-            client (botocore.client.S3) [REQUIRED]: boto3 client created by get_session
+            bucket (str) : Name of s3 bucket.
             local_file (str) [REQUIRED]: Filename of local file.
             key (str) [REQUIRED]: Name of s3 object key.
             metadata (dict, str): dict or string representing key/value pairs.
@@ -224,14 +223,6 @@ class Session(object):
         Returns:
             None
         """
-        if 'client' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'client'".format(__name__))
-        if 'bucket' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'bucket'".format(__name__))
-        if 'local_file' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'local_file'".format(__name__))
-        if 'key' not in kwargs:
-        	raise KeyError("{}.get_metadata() requires keyword argument 'key'".format(__name__))
         try:
             metadata = kwargs['metadata']
         except KeyError:
