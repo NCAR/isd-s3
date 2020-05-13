@@ -154,6 +154,8 @@ def set_s3_url(s3_url):
     if s3_url is not None:
         os.environ[S3_URL] = s3_url
         logger.info('S3_URL is {}.'.format(s3_url))
+    else:
+        os.environ[S3_URL] = get_default_environment()['s3_url']
 
 def set_credentials_file(credentials):
     if credentials is not None:
@@ -162,7 +164,7 @@ def set_credentials_file(credentials):
 
 def set_default_bucket(default_bucket):
     if default_bucket is not None:
-        os.environ[ISD_S3_DEFAULT_BUCKET] = credentials
+        os.environ[ISD_S3_DEFAULT_BUCKET] = default_bucket
         logger.info('Default bucket set to {}'.format(default_bucket))
 
 def get_s3_url():

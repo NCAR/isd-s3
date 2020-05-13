@@ -39,6 +39,7 @@ import sys
 import argparse
 import logging
 import pdb
+import json
 
 if __package__ is None or __package__ == "":
     import isd_s3
@@ -320,6 +321,7 @@ def _remove_common_args(_dict):
     del _dict['use_local_config']
     del _dict['command']
     del _dict['default_bucket']
+    del _dict['credentials_file']
 
 def do_action(args):
     """Interprets the parser and kicks processes command
@@ -331,13 +333,14 @@ def do_action(args):
         None ## Maybe returns (str) or (dict)?
     """
     # Init Session
-    session = isd_s3.Session(endpoint_url=args.s3_url, use_local_cred=args.use_local_config)
+    session = isd_s3.Session(endpoint_url=args.s3_url, credentials_loc=args.credentials_file)
 
     # Get function corresponding with command
     function = _get_action(session, args.command)
 
     # Remove global arguments
-    _remove_common_args(args.__dict__)
+    args_dict = args.__dict__
+    _remove_common_args(args_dict)
 
     return function(**args_dict)
 
@@ -365,7 +368,6 @@ def main(*args_list):
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args(args_list)
-    pdb.set_trace()
 
     noprint = args.noprint
     pp = args.prettyprint
@@ -375,7 +377,7 @@ def main(*args_list):
         del os.environ['AWS_SHARED_CREDENTIALS_FILE']
     # Need to have a default s3_url
     if args.s3_url is None and config.get_s3_url() is None:
-        args.s3_url = config.get_default_environment('s3_url')
+        args.s3_url = config.get_default_environment()['s3_url']
 
 
     config.configure_environment(args.s3_url, args.credentials_file, args.default_bucket)

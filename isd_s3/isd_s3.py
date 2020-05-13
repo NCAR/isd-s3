@@ -78,7 +78,7 @@ class Session(object):
             return list(map(lambda x: x['Name'], response))
         return response
 
-    def get_bucket(bucket):
+    def get_bucket(self, bucket):
         """Returns default bucket if bucket not defined.
         Otherwise raises exception.
         """
@@ -99,7 +99,6 @@ class Session(object):
 
         Args:
             bucket (str): Name of s3 bucket.
-            client (botocore.client.S3) [REQUIRED]: boto3 client created by get_session()
             prefix (str): Prefix from which to filter.
             ls (bool): Defaut False
             keys_only (bool): Only return the keys.  Default False.
@@ -115,12 +114,11 @@ class Session(object):
 
 
 
-    def disk_usage(bucket=None, prefix="", block_size='1MB'):
+    def disk_usage(bucket=None, prefix="",regex=None,block_size='1MB'):
         """Returns the disk usage for a set of objects.
 
         Args:
             bucket (str) [REQUIRED]: Name of s3 bucket.
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
             prefix (str): Prefix from which to filter.
             regex (str): regex string.  Default None
             block_size (str): block size
@@ -144,7 +142,6 @@ class Session(object):
 
         Args:
             bucket (str) [REQUIRED]: Name of s3 bucket.
-            client (botocore.client.S3) [REQUIRED]: boto3 session client created by get_session()
             prefix (str): Prefix from which to filter.
             ls (bool): Get 'directories'.
             keys_only (bool): Only return the keys.
@@ -160,12 +157,12 @@ class Session(object):
 
         contents = []
 
-        response = client.list_objects_v2(Bucket=bucket, Prefix=prefix)
+        response = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix)
         if 'Contents' not in response:
             return []
         contents.extend(response['Contents'])
         while response['IsTruncated']:
-            response = client.list_objects_v2(
+            response = self.client.list_objects_v2(
                     Bucket=bucket,
                     Prefix=prefix,
                     ContinuationToken=response['NextContinuationToken'])
@@ -223,9 +220,9 @@ class Session(object):
         Returns:
             None
         """
-        bucket = get_bucket(bucket)
+        bucket = self.get_bucket(bucket)
         if metadata is None:
-            return client.upload_file(local_file, bucket, key)
+            return self.client.upload_file(local_file, bucket, key)
 
         meta_dict = {'Metadata' : None}
         if isinstance(metadata, str):
@@ -286,7 +283,7 @@ class Session(object):
             None
 
         """
-        bucket = get_bucket(bucket)
+        bucket = self.get_bucket(bucket)
 
         filelist = self._get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
         if metadata is not None:
@@ -339,8 +336,8 @@ class Session(object):
         Returns:
             None
         """
-        bucket = get_bucket(bucket)
-        return client.delete_object(Bucket=bucket, Key=key)
+        bucket = self.get_bucket(bucket)
+        return self.client.delete_object(Bucket=bucket, Key=key)
 
     def get_object(self, key, bucket=None, write_dir='./'):
         """Get's object from store.
@@ -366,7 +363,7 @@ class Session(object):
             obj_regex (str): Regular expression to match against
             dry_run (bool): Print delete command as a sanity check.  No action taken if True.
         """
-        bucket = get_bucket(None)
+        bucket = self.get_bucket(None)
         all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True)
         matching_keys = []
         for key in all_objs:
@@ -386,7 +383,7 @@ class Session(object):
         Returns:
             (list): keys that match
         """
-        bucket = get_bucket(bucket)
+        bucket = self.get_bucket(bucket)
 
         all_keys = self.list_objects(bucket, regex=obj_regex, keys_only=True)
         matching_keys = []
@@ -396,6 +393,12 @@ class Session(object):
                 matching_keys.append(key)
 
         return matching_keys
+
+    def __str__(self):
+        mem_adr = super.__str__(self)
+        return mem_adr + "\nconfig\n-----\n" + \
+                "endpoint: " + str(config.get_s3_url()) + "\n" + \
+                "default bucket: " + str(config.get_default_bucket())
 
 
 def exit_session(error):

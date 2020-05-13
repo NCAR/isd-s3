@@ -10,6 +10,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/..')
 from isd_s3 import isd_s3
 
 bucket = 'rda-test-rpconroy'
+session = isd_s3.Session(default_bucket='rda-test-rpconroy')
+
 
 def passed():
     curframe = inspect.currentframe()
