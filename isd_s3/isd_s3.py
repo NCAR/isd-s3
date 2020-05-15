@@ -327,19 +327,8 @@ class Session(object):
                 return json.loads(metadata_str)
             return metadata_func
 
-    def delete(self, key, bucket=None):
-        """Deletes Key from given bucket.
 
-        Args:
-            key (str) [REQUIRED]: Name of s3 object key.
-
-        Returns:
-            None
-        """
-        bucket = self.get_bucket(bucket)
-        return self.client.delete_object(Bucket=bucket, Key=key)
-
-    def get_object(self, key, bucket=None, write_dir='./'):
+    def get_object(self, key, bucket=None, local_dir='./', local_filename=None):
         """Get's object from store.
 
         Writes to local dir
@@ -352,25 +341,42 @@ class Session(object):
         Returns:
             None
         """
-        local_filename = os.path.basename(key)
+        if local_filename is None:
+            local_filename = os.path.basename(key)
+        os.path.join(local_dir, local_filename)
         self.client.download_file(bucket, key, local_filename)
+        return {'result' : 'successful'}
 
-    def delete_mult(self, bucket=None, obj_regex=None, dry_run=False):
+    def delete(self, keys=[], bucket=None, dry_run=False):
+        """Deletes Key from given bucket.
+
+        Args:
+            key (str) [REQUIRED]: Name of s3 object key.
+            dry_run (bool): Print delete command as a sanity check.  No action taken if True.
+
+        Returns:
+            None
+        """
+        if isinstance(keys,str):
+            keys=[keys]
+        assert len(keys) > 0
+        bucket = self.get_bucket(bucket)
+        for key in keys:
+            if dry_run:
+                logging.info('deleting ' + k)
+            else:
+                self.client.delete_object(Bucket=bucket, Key=key)
+
+    def delete_mult(self, bucket=None, obj_regex=None, dry_run=False, prefix=""):
         """delete objects where keys match regex.
 
         Args:
             bucket (str) : Name of s3 bucket.
-            obj_regex (str): Regular expression to match against
-            dry_run (bool): Print delete command as a sanity check.  No action taken if True.
         """
-        bucket = self.get_bucket(None)
-        all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True)
+        bucket = self.get_bucket(bucket)
+        all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True, prefix="")
         matching_keys = []
-        for key in all_objs:
-            if dry_run:
-                print('Deleting:' + bucket + '/' + key)
-            else:
-                self.delete(bucket, key)
+        self.delete(bucket=bucket, keys=all_keys, dry_run=dry_run)
 
     def search_metadata(self, bucket=None, obj_regex=None, metadata_key=None):
         """Search metadata. Narrow search using regex for keys.

@@ -112,11 +112,17 @@ def _get_parser():
             aliases=['dl'],
             help='Delete objects',
             description='Delete objects')
-    del_parser.add_argument('--key', '-k',
+   # del_parser.add_argument('--key', '-k',
+   #         type=str,
+   #         metavar='<key>',
+   #         required=True,
+   #         help="Object key to delete")
+    del_parser.add_argument('keys',
             type=str,
-            metavar='<key>',
-            required=True,
-            help="Object key to delete")
+            nargs='+',
+            metavar='<keys to delete>',
+            default=[],
+            help="keys to delete")
     del_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
@@ -132,6 +138,16 @@ def _get_parser():
             metavar='<key>',
             required=True,
             help="Object key to pull")
+    get_parser.add_argument('--local_filename', '-lf',
+            type=str,
+            metavar='<local filename>',
+            required=False,
+            help="Save to another name than the key")
+    get_parser.add_argument('--local_dir', '-ld',
+            type=str,
+            metavar='<local directory>',
+            required=False,
+            help="Save to another directory, rather than current dir")
     get_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
@@ -315,13 +331,13 @@ def _remove_common_args(_dict):
     Returns:
         None
     """
-    del _dict['noprint']
-    del _dict['prettyprint']
-    del _dict['s3_url']
-    del _dict['use_local_config']
-    del _dict['command']
-    del _dict['default_bucket']
-    del _dict['credentials_file']
+    _dict.pop('noprint', None)
+    _dict.pop('prettyprint', None)
+    _dict.pop('s3_url', None)
+    _dict.pop('use_local_config', None)
+    _dict.pop('command', None)
+    _dict.pop('default_bucket', None)
+    _dict.pop('credentials_file', None)
 
 def do_action(args):
     """Interprets the parser and kicks processes command
@@ -383,13 +399,57 @@ def main(*args_list):
     config.configure_environment(args.s3_url, args.credentials_file, args.default_bucket)
 
     result_json = do_action(args)
-    if not noprint:
-        if pp:
-            _pretty_print(result_json)
-        else:
-            _pretty_print(result_json, False)
+    print_output(result_json, pp, noprint)
     return result_json
 
+def print_output(output, pretty_print=True, noprint=False):
+    if not noprint:
+        if pretty_print:
+            _pretty_print(output)
+        else:
+            _pretty_print(output, False)
+
+def read_json_from_stdin():
+    """Read arguments from stdin"""
+    in_json=""
+    for line in sys.stdin.readlines():
+        in_json += line
+    json_dict = json.loads(in_json)
+    return json_dict
+
+def call_action_from_dict(args_dict):
+    """calls action using dict instead of command line arguments."""
+    assert 'command' in args_dict
+
+   # if args.use_local_config is True:
+   #     # Default loacation is ~/.aws/credentials
+   #     del os.environ['AWS_SHARED_CREDENTIALS_FILE']
+   # # Need to have a default s3_url
+   # if args.s3_url is None and config.get_s3_url() is None:
+   #     args.s3_url = config.get_default_environment()['s3_url']
+
+    if 's3_url' not in args_dict:
+        args_dict['s3_url'] = None
+    if 'credentials_file' not in args_dict:
+        args_dict['credentials_file'] = None
+    session = isd_s3.Session(endpoint_url=args_dict['s3_url'], credentials_loc=args_dict['credentials_file'])
+
+    # Get function corresponding with command
+    function = _get_action(session, args_dict['command'])
+
+    # Remove global arguments
+    _remove_common_args(args_dict)
+    result = function(**args_dict)
+    print_output(result)
+
+    return result
+
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    from_pipe = not os.isatty(sys.stdin.fileno())
+    if from_pipe:
+        json_input = read_json_from_stdin()
+        print(json_input)
+        call_action_from_dict(json_input)
+    else:
+        main(*sys.argv[1:])
 
