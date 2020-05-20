@@ -321,6 +321,17 @@ def _get_action(obj, command):
     func = getattr(obj, command)
     return func
 
+def get_global_args():
+    global_args = [
+            'noprint',
+            'prettyprint',
+            's3_url',
+            'use_local_config',
+            'command',
+            'default_bucket',
+            'credentials_file']
+    return global_args
+
 def _remove_common_args(_dict):
     """Removes global arguments from given dict.
 
@@ -331,13 +342,9 @@ def _remove_common_args(_dict):
     Returns:
         None
     """
-    _dict.pop('noprint', None)
-    _dict.pop('prettyprint', None)
-    _dict.pop('s3_url', None)
-    _dict.pop('use_local_config', None)
-    _dict.pop('command', None)
-    _dict.pop('default_bucket', None)
-    _dict.pop('credentials_file', None)
+    args = get_global_args()
+    for arg in args:
+        _dict.pop(arg, None)
 
 def do_action(args):
     """Interprets the parser and kicks processes command
@@ -346,7 +353,7 @@ def do_action(args):
         args (Namespace): Argument parser to find commands and sub-commands.
 
     Returns:
-        None ## Maybe returns (str) or (dict)?
+        function
     """
     # Init Session
     session = isd_s3.Session(endpoint_url=args.s3_url, credentials_loc=args.credentials_file)
@@ -368,6 +375,35 @@ def _pretty_print(struct, pretty_print=True):
         else:
             print(json.dumps(struct, default=lambda x: x.__str__()))
 
+def flatten_dict(_dict):
+    assert 'command' in _dict
+    args_list = [_dict['command']]
+    del _dict['command']
+    global_args = get_global_args()
+    for k, v in _dict.items():
+        if k[0] != '-':
+            k = '-'+k
+        insert_pos = len(args_list) + 100
+        if k in global_args:
+            insert_pos=0
+            args_list.insert(insert_pos, k)
+            insert_pos += 1
+        else:
+            args_list.insert(insert_pos, k)
+
+        if isinstance(v, str):
+            args_list.insert(insert_pos, v)
+        elif isinstance(v, list):
+            for item in v:
+                args_list.insert(insert_pos, item)
+                insert_pos += 1
+        elif isinstance(v, dict):
+            args_list.append(insert_pos, json.dumps(v))
+        elif isinstance(v, bool):
+            pass
+        else:
+            raise Exception("Unrecognized value")
+    return args_list
 
 def main(*args_list):
     """Use command line-like arguments to execute
@@ -378,6 +414,7 @@ def main(*args_list):
     Returns:
         (dict, generally) : result of argument call.
     """
+    print(args_list)
     parser = _get_parser()
     args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
@@ -448,8 +485,8 @@ if __name__ == "__main__":
     from_pipe = not os.isatty(sys.stdin.fileno())
     if from_pipe:
         json_input = read_json_from_stdin()
-        print(json_input)
-        call_action_from_dict(json_input)
+        main(*flatten_dict(json_input))
+       # call_action_from_dict(json_input)
     else:
         main(*sys.argv[1:])
 

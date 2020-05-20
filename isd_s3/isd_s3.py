@@ -17,7 +17,10 @@ import re
 import boto3
 import logging
 import multiprocessing
-import config
+if __package__ is None or __package__ == "":
+    import config
+else:
+    from . import config
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +211,7 @@ class Session(object):
 
         return self.client.head_object(Bucket=bucket, Key=key)['Metadata']
 
-    def upload_object(self, local_file, metadata=None, bucket=None):
+    def upload_object(self, local_file, key, metadata=None, bucket=None):
         """Uploads files to object store.
 
         Args:

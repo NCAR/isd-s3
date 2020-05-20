@@ -8,6 +8,7 @@ import inspect
 import pdb
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'/..')
 from isd_s3 import isd_s3
+from isd_s3 import __main__ as main
 
 bucket = 'rda-test-rpconroy'
 session = isd_s3.Session(default_bucket='rda-test-rpconroy')
@@ -19,7 +20,7 @@ def passed():
     print('Passed ', calframe[1][3])
 
 def test_argparse():
-    parser = isd_s3._get_parser()
+    parser = main._get_parser()
     args = ['lb', '-bo']
     # Test optional args
     args = parser.parse_args(args)
@@ -35,21 +36,21 @@ def test_upload():
     test_file = 'test.txt'
     with open(test_file, 'w') as fh:
         fh.write('this is a test')
-    ret = isd_s3.main('-np', 'ul', '-b', bucket, '-lf', test_file, '-k', 'test.txt')
-    #ret = isd_s3.main('-np', 'ul', '-b', bucket, '-lf', test_file, '-k', 'test.txt')
+    ret = main.main('-np', 'ul', '-b', bucket, '-lf', test_file, '-k', 'test.txt')
+    #ret = main.main('-np', 'ul', '-b', bucket, '-lf', test_file, '-k', 'test.txt')
     os.remove(test_file)
     passed()
 
 def test_list_objects():
-    ret = isd_s3.main('-np', 'lo', '-b', bucket, 'test', '-ko')
+    ret = main.main('-np', 'lo', '-b', bucket, 'test', '-ko')
     assert 'test.txt' in ret
-    ret = isd_s3.main('-np', 'lo', '-b', bucket, 'test.txt')
+    ret = main.main('-np', 'lo', '-b', bucket, 'test.txt')
     assert len(ret) == 1
     assert ret[0]['Size'] == 14
     passed()
 
 def test_list_buckets():
-    ret = isd_s3.main('-np', 'lb', '-bo')
+    ret = main.main('-np', 'lb', '-bo')
     assert bucket in ret
     passed()
 
