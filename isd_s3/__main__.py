@@ -383,9 +383,13 @@ def _pretty_print(struct, pretty_print=True):
 def flatten_dict(_dict):
     assert 'command' in _dict
     args_list = [_dict['command']]
+    positional_arguments = None
     del _dict['command']
     global_args = get_global_args()
     for k, v in _dict.items():
+        if k == 'positional_arguments':
+            positional_arguments = v
+            continue
         if k[0] != '-':
             k = '-'+k
         insert_pos = len(args_list) + 100
@@ -408,6 +412,8 @@ def flatten_dict(_dict):
             pass
         else:
             raise Exception("Unrecognized value")
+    if positional_arguments is not None:
+        args_list.extend(positional_arguments)
     return args_list
 
 def main(*args_list):
@@ -419,12 +425,12 @@ def main(*args_list):
     Returns:
         (dict, generally) : result of argument call.
     """
-    logger.warning('starting')
     parser = _get_parser()
     args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
         parser.print_help()
         sys.exit(1)
+    logger.warning('Starting Main')
     args = parser.parse_args(args_list)
 
     noprint = args.noprint
@@ -493,7 +499,9 @@ if __name__ == "__main__":
     from_pipe = not os.isatty(sys.stdin.fileno())
     if from_pipe:
         json_input = read_json_from_stdin()
-        main(*flatten_dict(json_input))
+        if isinstance(json_input, list):
+            for command_json in json_input:
+                main(*flatten_dict(command_json))
        # call_action_from_dict(json_input)
     else:
         main(*sys.argv[1:])
