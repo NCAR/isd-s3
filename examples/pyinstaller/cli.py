@@ -15,6 +15,10 @@ if __name__ == '__main__':
     from_pipe = not os.isatty(sys.stdin.fileno())
     if from_pipe:
         json_input = read_json_from_stdin()
-        main(*flatten_dict(json_input))
+        if isinstance(json_input, list):
+            for command_json in json_input:
+                main(*flatten_dict(command_json))
+        else:
+            main(*flatten_dict(json_input))
     else:
         main(*sys.argv[1:])

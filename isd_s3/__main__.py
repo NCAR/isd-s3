@@ -70,7 +70,7 @@ def _get_parser():
     parser.add_argument('--loglevel', '-ll',
             type=str,
             required=False,
-            help="Set logging level. DEBUG, INFO, WARNING, ERROR")
+            help="Set logging level. DEBUG, INFO, WARNING, ERROR, CRITICAL")
     parser.add_argument('--prettyprint', '-pp',
             action='store_true',
             required=False,
@@ -443,7 +443,7 @@ def main(*args_list):
     if args.s3_url is None and config.get_s3_url() is None:
         args.s3_url = config.get_default_environment()['s3_url']
     if args.loglevel is not None:
-        level = logging.get_log_levels()[args.loglevel]
+        level = config.get_log_levels()[args.loglevel.lower()]
         logger.setLevel(level)
 
 
@@ -502,6 +502,8 @@ if __name__ == "__main__":
         if isinstance(json_input, list):
             for command_json in json_input:
                 main(*flatten_dict(command_json))
+        else:
+            main(*flatten_dict(json_input))
        # call_action_from_dict(json_input)
     else:
         main(*sys.argv[1:])
