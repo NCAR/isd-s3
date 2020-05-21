@@ -211,6 +211,68 @@ class Session(object):
 
         return self.client.head_object(Bucket=bucket, Key=key)['Metadata']
 
+    def replace_object(self, key, bucket=None, metadata=None):
+        """Copies files to object store.
+
+        Args:
+            key (str): key of object to be replaced.
+            bucket (str) : Name of s3 bucket.
+            metadata (dict, str): dict or string representing key/value pairs.
+
+        Returns:
+            None
+        """
+        bucket = self.get_bucket(bucket)
+        return self.copy_object(key, bucket, key, bucket, metadata)
+
+    def copy_object(self, source_key, source_bucket, dest_key, dest_bucket, metadata=None ):
+        """Copies files to object store.
+
+        Args:
+            source_key (str): key of object to be copied.
+            dest_key (str): Name of s3 object key.
+            metadata (dict, str): dict or string representing key/value pairs.
+            bucket (str) : Name of s3 bucket.
+
+        Returns:
+            None
+        """
+        #bucket = self.get_bucket(bucket)
+        if metadata is None:
+            return self.client.copy_object(Key=dest_key, Bucket=dest_bucket,
+                    CopySource={"Bucket": source_bucket, "Key": source_key})
+
+        meta_dict = {'Metadata' : None}
+        if isinstance(metadata, str):
+            # Parse string or check if file exists
+             meta_dict['Metadata'] = json.loads(metadata)
+        elif isinstance(metadata, dict):
+            #TODO assert it's a flat dict
+            meta_dict['Metadata'] = metadata
+
+            return self.client.copy_object(Key=dest_key, Bucket=dest_bucket,
+                    CopySource={"Bucket": source_bucket, "Key": source_key},
+                    Metadata=meta_dict,
+                    MetadataDirective="REPLACE")
+
+    def add_required_metadata(self, _dict):
+        """Adds required metadata to dict.
+
+        Args:
+            _dict (dict) : metadata dict
+
+        Returns:
+            None (modifies _dict)
+        """
+        if _dict is None:
+            return
+        if "uploading_account" not in _dict:
+            username = os.getlogin()
+            _dict["uploading_account"] = username
+        if "institution" not in _dict:
+            _dict["institution"] = "NCAR"
+
+
     def upload_object(self, local_file, key, metadata=None, bucket=None):
         """Uploads files to object store.
 
@@ -234,6 +296,7 @@ class Session(object):
         elif isinstance(metadata, dict):
             #TODO assert it's a flat dict
             meta_dict['Metadata'] = metadata
+        self.add_required_metadata(meta_dict)
 
         return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
 
