@@ -48,7 +48,7 @@ else:
     from . import isd_s3
     from . import config
 
-logger = logging.getLogger(__name__)
+logger = config.logger
 
 def _get_parser():
     """Creates and returns parser object.
@@ -67,6 +67,10 @@ def _get_parser():
             action='store_true',
             required=False,
             help="Do not print result of actions.")
+    parser.add_argument('--loglevel', '-ll',
+            type=str,
+            required=False,
+            help="Set logging level. DEBUG, INFO, WARNING, ERROR")
     parser.add_argument('--prettyprint', '-pp',
             action='store_true',
             required=False,
@@ -329,6 +333,7 @@ def get_global_args():
             'use_local_config',
             'command',
             'default_bucket',
+            'loglevel',
             'credentials_file']
     return global_args
 
@@ -384,7 +389,7 @@ def flatten_dict(_dict):
         if k[0] != '-':
             k = '-'+k
         insert_pos = len(args_list) + 100
-        if k in global_args:
+        if k[2:] in global_args:
             insert_pos=0
             args_list.insert(insert_pos, k)
             insert_pos += 1
@@ -414,7 +419,7 @@ def main(*args_list):
     Returns:
         (dict, generally) : result of argument call.
     """
-    print(args_list)
+    logger.warning('starting')
     parser = _get_parser()
     args_list = list(args_list) # args_list is tuple
     if len(args_list) == 0:
@@ -431,6 +436,9 @@ def main(*args_list):
     # Need to have a default s3_url
     if args.s3_url is None and config.get_s3_url() is None:
         args.s3_url = config.get_default_environment()['s3_url']
+    if args.loglevel is not None:
+        level = logging.get_log_levels()[args.loglevel]
+        logger.setLevel(level)
 
 
     config.configure_environment(args.s3_url, args.credentials_file, args.default_bucket)

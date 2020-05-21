@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import sys
+import os
 
-from isd_s3.__main__ import main
+from isd_s3.__main__ import main, read_json_from_stdin, flatten_dict
 from isd_s3 import config
+import logging
 
 if __name__ == '__main__':
     # For defaults use:
@@ -10,4 +12,9 @@ if __name__ == '__main__':
     rda_config = '/glade/u/home/rdadata/.aws/isd_s3_config'
     config.configure_logging_from_file(rda_config)
     config.configure_environment_from_file(rda_config)
-    main(*sys.argv[1:])
+    from_pipe = not os.isatty(sys.stdin.fileno())
+    if from_pipe:
+        json_input = read_json_from_stdin()
+        main(*flatten_dict(json_input))
+    else:
+        main(*sys.argv[1:])

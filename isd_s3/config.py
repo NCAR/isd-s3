@@ -42,6 +42,16 @@ def get_defult_log_config():
           }
     return default_config
 
+def get_log_levels():
+    LEVELS = {
+            'debug': logging.DEBUG,
+            'info': logging.INFO,
+            'warning': logging.WARNING,
+            'error': logging.ERROR,
+            'critical': logging.CRITICAL
+            }
+    return LEVELS
+
 def configure_logging_from_file(ini_file=None):
     """Configure logging from .ini file
 
@@ -79,19 +89,13 @@ def configure_logging_from_file(ini_file=None):
     backupcount = int(_cfg.get(LOG_SECTION, 'backupcount'))
     logfmt = _cfg.get(LOG_SECTION, 'logfmt')
 
-    configure_log(logpath, logfile, dbgfile, level, maxbytes, backupcount, logfmt)
+    configure_logging(logpath, logfile, dbgfile, level, maxbytes, backupcount, logfmt)
 
 def configure_logging(logpath, logfile, dbgfile, loglevel, maxbytes, backupcount, logfmt):
     """Configure logging."""
 
     # Set logging level.
-    LEVELS = {
-            'debug': logging.DEBUG,
-            'info': logging.INFO,
-            'warning': logging.WARNING,
-            'error': logging.ERROR,
-            'critical': logging.CRITICAL
-            }
+    LEVELS = get_log_levels()
     level = LEVELS.get(loglevel, logging.INFO)
     logger.setLevel(level)
 
@@ -135,7 +139,7 @@ def configure_environment_from_file(ini_file=None):
         ini_file = os.path.join(home,'.aws','isd_s3.ini')
     _cfg = read_config_parser(ini_file)
 
-    default_config = get_defult_environment()
+    default_config = get_default_environment()
     s3_url = _cfg.get('default', 's3_url')
     credentials = _cfg.get('default', 'credentials')
     default_bucket = _cfg.get('default', 'bucket')
