@@ -240,7 +240,10 @@ class Session(object):
         Returns:
             None
         """
-        source_bucket = self.get_bucket(bucket)
+        source_bucket = self.get_bucket(source_bucket)
+        if dest_bucket is None:
+            dest_bucket = source_bucket
+
         if metadata is None:
             return self.client.copy_object(Key=dest_key, Bucket=dest_bucket,
                     CopySource={"Bucket": source_bucket, "Key": source_key})

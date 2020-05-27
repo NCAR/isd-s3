@@ -239,7 +239,7 @@ def _get_parser():
             metavar='<bucket>',
             required=False,
             help="source bucket")
-    copy_parser.add_argument('--dest_bucket', '-b',
+    copy_parser.add_argument('--dest_bucket', '-db',
             type=str,
             metavar='<destination bucket>',
             required=False,
