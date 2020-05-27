@@ -150,6 +150,7 @@ def _get_parser():
     get_parser.add_argument('--local_dir', '-ld',
             type=str,
             metavar='<local directory>',
+            default='./',
             required=False,
             help="Save to another directory, rather than current dir")
     get_parser.add_argument('--bucket', '-b',
@@ -200,6 +201,55 @@ def _get_parser():
             help="Optionally provide metadata for an object. \
                     This can be a function where file is passed.")
 
+    replace_parser = actions_parser.add_parser("replace_metadata",
+            help='replace object metadata',
+            description='replace objects metadata')
+    replace_parser.add_argument('--bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=False,
+            help="Name of bucket")
+    replace_parser.add_argument('--key', '-k',
+            type=str,
+            metavar='<key>',
+            required=True,
+            help="key given to object ")
+    replace_parser.add_argument('--metadata', '-md',
+            type=str,
+            metavar='<dict str>',
+            required=False,
+            help="Provide metadata for an object. Otherwise deletes metadata")
+
+    copy_parser = actions_parser.add_parser("copy_object",
+            aliases=['cp'],
+            help='copy object to new key',
+            description='copy object')
+    copy_parser.add_argument('--source_key', '-k',
+            type=str,
+            metavar='<source key>',
+            required=True,
+            help="Object key to copy")
+    copy_parser.add_argument('--dest_key', '-dk',
+            type=str,
+            metavar='<new key>',
+            required=True,
+            help="Object key to copy")
+    copy_parser.add_argument('--source_bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=False,
+            help="source bucket")
+    copy_parser.add_argument('--dest_bucket', '-b',
+            type=str,
+            metavar='<destination bucket>',
+            required=False,
+            help="destination bucket")
+    copy_parser.add_argument('--metadata', '-md',
+            type=str,
+            metavar='<dict str>',
+            required=False,
+            help="Provide metadata for an object. Otherwise deletes metadata")
+
     upload_parser = actions_parser.add_parser("upload",
             aliases=['ul'],
             help='Upload objects',
@@ -224,6 +274,10 @@ def _get_parser():
             metavar='<dict str>',
             required=False,
             help="Optionally provide metadata for an object")
+    upload_parser.add_argument('--md5',
+            action='store_true',
+            required=False,
+            help="Compute ContentMD5 before uploading")
 
     du_parser = actions_parser.add_parser("disk_usage",
             aliases=['du'],
@@ -314,6 +368,7 @@ def _get_action(obj, command):
             "gm" : 'get_metadata',
             "upload" : 'upload_object',
             "ul" : 'upload_object',
+            "cp" : 'copy_object',
             "dl" : 'delete',
             "du" : 'disk_usage',
             "upload_mult" : 'upload_mult_objects',

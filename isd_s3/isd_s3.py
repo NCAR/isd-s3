@@ -17,6 +17,8 @@ import re
 import boto3
 import logging
 import multiprocessing
+
+from boto3.s3.transfer import TransferConfig
 if __package__ is None or __package__ == "":
     import config
 else:
@@ -211,7 +213,7 @@ class Session(object):
 
         return self.client.head_object(Bucket=bucket, Key=key)['Metadata']
 
-    def replace_object(self, key, bucket=None, metadata=None):
+    def replace_metadata(self, key, bucket=None, metadata=None):
         """Copies files to object store.
 
         Args:
@@ -225,19 +227,20 @@ class Session(object):
         bucket = self.get_bucket(bucket)
         return self.copy_object(key, bucket, key, bucket, metadata)
 
-    def copy_object(self, source_key, source_bucket, dest_key, dest_bucket, metadata=None ):
+    def copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
         """Copies files to object store.
 
         Args:
             source_key (str): key of object to be copied.
-            dest_key (str): Name of s3 object key.
+            dest_key (str): Name of new s3 object key.
+            source_bucket (str): bucket of key
+            dest_bucket (str) : Name of s3 bucket.
             metadata (dict, str): dict or string representing key/value pairs.
-            bucket (str) : Name of s3 bucket.
 
         Returns:
             None
         """
-        #bucket = self.get_bucket(bucket)
+        source_bucket = self.get_bucket(bucket)
         if metadata is None:
             return self.client.copy_object(Key=dest_key, Bucket=dest_bucket,
                     CopySource={"Bucket": source_bucket, "Key": source_key})
@@ -273,7 +276,7 @@ class Session(object):
             _dict["institution"] = "NCAR"
 
 
-    def upload_object(self, local_file, key, metadata=None, bucket=None):
+    def upload_object(self, local_file, key, metadata=None, bucket=None, md5=False):
         """Uploads files to object store.
 
         Args:
@@ -286,19 +289,28 @@ class Session(object):
             None
         """
         bucket = self.get_bucket(bucket)
-        if metadata is None:
-            return self.client.upload_file(local_file, bucket, key)
+        #if metadata is None:
+        #    return self.client.upload_file(local_file, bucket, key)
 
-        meta_dict = {'Metadata' : None}
+        meta_dict = {'Metadata' : {}}
         if isinstance(metadata, str):
             # Parse string or check if file exists
              meta_dict['Metadata'] = json.loads(metadata)
         elif isinstance(metadata, dict):
             #TODO assert it's a flat dict
             meta_dict['Metadata'] = metadata
-        self.add_required_metadata(meta_dict)
+        self.add_required_metadata(meta_dict['Metadata'])
 
-        return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict)
+        if md5:
+            meta_dict['Metadata']['ContentMD5'] = get_md5sum(local_file)
+            #meta_dict['ContentMD5'] = get_md5sum(local_file)
+        trans_config = TransferConfig(
+                use_threads=True,
+                max_concurrency=20,
+                multipart_threshold=1024*25,
+                multipart_chunksize=1024*25)
+
+        return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
 
     def get_filelist(self, local_dir, recursive=False, ignore=[]):
         """Returns local filelist.
@@ -513,6 +525,11 @@ def parse_block_size(block_size_str):
     base_divisor = units[unit]
     divisor = base_divisor * number
     return divisor
+
+def get_md5sum(local_file):
+    import hashlib
+    content_md5 = hashlib.md5(open(local_file,'rb').read()).hexdigest()
+    return content_md5
 
 class ISD_S3_Exception(Exception):
     pass

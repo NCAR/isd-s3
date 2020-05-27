@@ -72,7 +72,7 @@ def configure_logging_from_file(ini_file=None):
     """
     if ini_file is None:
         home = str(Path.home())
-        ini_file = os.path.join(home,'.aws','filename.ini')
+        ini_file = os.path.join(home,'.aws','isd_s3.ini')
     _cfg = read_config_parser(ini_file)
 
     default_config = get_defult_log_config()
