@@ -48,7 +48,7 @@ else:
     from . import isd_s3
     from . import config
 
-logger = config.logger
+logger = logging.getLogger(__name__)
 
 def _get_parser():
     """Creates and returns parser object.
