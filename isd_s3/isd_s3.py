@@ -24,7 +24,7 @@ if __package__ is None or __package__ == "":
 else:
     from . import config
 
-logger = config.logger
+logger = logging.getLogger(__name__)
 
 class Session(object):
 

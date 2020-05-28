@@ -485,7 +485,6 @@ def main(*args_list):
     if len(args_list) == 0:
         parser.print_help()
         sys.exit(1)
-    logger.warning('Starting Main')
     args = parser.parse_args(args_list)
 
     noprint = args.noprint
