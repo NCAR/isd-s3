@@ -220,6 +220,36 @@ def _get_parser():
             required=False,
             help="Provide metadata for an object. Otherwise deletes metadata")
 
+    move_parser = actions_parser.add_parser("move_object",
+            aliases=['mv'],
+            help='move object to new key',
+            description='move object')
+    move_parser.add_argument('--source_key', '-k',
+            type=str,
+            metavar='<source key>',
+            required=True,
+            help="Object key to move")
+    move_parser.add_argument('--dest_key', '-dk',
+            type=str,
+            metavar='<new key>',
+            required=True,
+            help="Object key to move")
+    move_parser.add_argument('--source_bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=False,
+            help="source bucket")
+    move_parser.add_argument('--dest_bucket', '-db',
+            type=str,
+            metavar='<destination bucket>',
+            required=False,
+            help="destination bucket")
+    move_parser.add_argument('--metadata', '-md',
+            type=str,
+            metavar='<dict str>',
+            required=False,
+            help="Provide metadata for an object. Otherwise deletes metadata")
+
     copy_parser = actions_parser.add_parser("copy_object",
             aliases=['cp'],
             help='copy object to new key',
@@ -369,6 +399,7 @@ def _get_action(obj, command):
             "upload" : 'upload_object',
             "ul" : 'upload_object',
             "cp" : 'copy_object',
+            "mv" : 'move_object',
             "dl" : 'delete',
             "du" : 'disk_usage',
             "upload_mult" : 'upload_mult_objects',

@@ -227,8 +227,25 @@ class Session(object):
         bucket = self.get_bucket(bucket)
         return self.copy_object(key, bucket, key, bucket, metadata)
 
+    def move_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
+        """Moves object to new key. This will overwrite an object the new key already exists.
+
+
+        Args:
+            source_key (str): key of object to be copied.
+            dest_key (str): Name of new s3 object key.
+            source_bucket (str): bucket of key
+            dest_bucket (str) : Name of s3 bucket.
+            metadata (dict, str): dict or string representing key/value pairs.
+
+        Returns:
+            None
+        """
+        self.copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None)
+        self.delete([key], bucket=source_bucket)
+
     def copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
-        """Copies files to object store.
+        """Copies objects to new key or bucket.
 
         Args:
             source_key (str): key of object to be copied.
