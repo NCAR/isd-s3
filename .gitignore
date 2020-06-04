@@ -3,6 +3,5 @@ build/*
 dist/*
 ncar_isd_s3.egg-info/*
 *.log
-*config.py
 *.ipynb_checkpoints
 isd_s3/.ipynb_checkpoints/*
