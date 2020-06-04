@@ -4,7 +4,8 @@ import logging
 from isd_s3 import isd_s3
 
 __all__ = (
-    "isd_s3"
+    "isd_s3",
+    "config"
 )
 
 __version__ = "1.0.0"
