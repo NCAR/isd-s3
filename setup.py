@@ -14,7 +14,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="ncar-isd-s3",
-    version="0.1.3",  # See semantic versioning at https://semver.org/
+    version="1.0.0",  # See semantic versioning at https://semver.org/
     author="NCAR RDA Team",
     author_email="rdahelp@ucar.edu",
     description="NCAR ISD S3 object storage utility",
@@ -27,7 +27,7 @@ setup(
 	    "botocore"
     ],
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX",
         "Programming Language :: Python :: 3",
