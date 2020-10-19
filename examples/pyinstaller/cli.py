@@ -113,7 +113,9 @@ if __name__ == '__main__':
     configure_logging_from_file(rda_config)
     config.configure_environment_from_file(rda_config)
     from_pipe = not os.isatty(sys.stdin.fileno())
-    if from_pipe:
+    if len(sys.argv) > 1:
+        main(*sys.argv[1:])
+    elif from_pipe:
         json_input = read_json_from_stdin()
         if isinstance(json_input, list):
             for command_json in json_input:

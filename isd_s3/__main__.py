@@ -40,6 +40,7 @@ import argparse
 import logging
 import pdb
 import json
+import select
 
 if __package__ is None or __package__ == "":
     import isd_s3
@@ -581,8 +582,11 @@ def call_action_from_dict(args_dict):
     return result
 
 if __name__ == "__main__":
-    from_pipe = not os.isatty(sys.stdin.fileno())
-    if from_pipe:
+    #from_pipe = not os.isatty(sys.stdin.fileno())
+    from_pipe = select.select([sys.stdin,],[],[],0.0)[0]
+    if len(sys.argv) > 1:
+        main(*sys.argv[1:])
+    elif from_pipe:
         json_input = read_json_from_stdin()
         if isinstance(json_input, list):
             for command_json in json_input:
@@ -592,4 +596,5 @@ if __name__ == "__main__":
        # call_action_from_dict(json_input)
     else:
         main(*sys.argv[1:])
+
 
