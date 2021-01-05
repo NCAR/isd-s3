@@ -100,11 +100,11 @@ def configure_logging(logpath, logfile, dbgfile, loglevel, maxbytes, backupcount
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.info('here')
-    except:
+    except Exception as e:
 
     #    # Send all warnings and error messages to stdout if above throws an exception.
         logging.basicConfig(level=logging.INFO)
-        logger.warning("Logging configuration failed.  All warnings and error messages will be directed to stdout.")
+        logger.warning("Logging configuration failed due to '"+str(e)+"'  All warnings and error messages will be directed to stdout.")
 
 if __name__ == '__main__':
     # For defaults use:
