@@ -8,7 +8,7 @@ __all__ = (
     "config"
 )
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 """
     Configure logging for a library, per Python best practices:
