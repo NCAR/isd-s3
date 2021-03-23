@@ -385,7 +385,7 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
-        filelist = self._get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
+        filelist = self.get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
         if metadata is not None:
             func = self._interpret_metadata_str(metadata)
         cpus = multiprocessing.cpu_count()
@@ -400,7 +400,7 @@ class Session(object):
                 print('(Dry Run) Uploading :'+_file+" to "+bucket+'/'+key)
             else:
                 p = multiprocessing.Process(
-                        target=upload_object,
+                        target=self.upload_object,
                         args=(bucket,_file,key,metadata_str ))
                 p.start()
                 p.join()
