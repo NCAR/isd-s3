@@ -399,11 +399,14 @@ class Session(object):
             if dry_run:
                 print('(Dry Run) Uploading :'+_file+" to "+bucket+'/'+key)
             else:
-                p = multiprocessing.Process(
-                        target=self.upload_object,
-                        args=(bucket,_file,key,metadata_str ))
-                p.start()
-                p.join()
+                try:
+                    p = multiprocessing.Process(
+                            target=self.upload_object,
+                            args=(bucket,_file,key,metadata_str ))
+                    p.start()
+                    p.join()
+                except:
+                    self.upload_object(_file,key,bucket=bucket,metadata=metadata_str)
 
     def interpret_metadata_str(self, metadata):
         """Determine what metadata string is,
