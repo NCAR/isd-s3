@@ -17,6 +17,7 @@ import re
 import boto3
 import logging
 import multiprocessing
+import pdb
 
 from boto3.s3.transfer import TransferConfig
 if __package__ is None or __package__ == "":
@@ -41,6 +42,7 @@ class Session(object):
 
         config.configure_environment(endpoint_url, credentials_loc, default_bucket)
         self.client = self.get_session()
+        pdb.set_trace()
 
     def get_session(self, endpoint_url=None):
         """Gets a boto3 session client.
@@ -521,6 +523,41 @@ def exit_session(error):
     else:
         sys.stdout.write(str(error))
         exit(1)
+
+
+def upload_object(self, local_file, key, bucket, metadata=None, md5=False):
+    """Uploads files to object store.
+
+    Args:
+        local_file (str): Filename of local file.
+        key (str): Name of s3 object key.
+        metadata (dict, str): dict or string representing key/value pairs.
+        bucket (str) : Name of s3 bucket.
+
+    Returns:
+        None
+    """
+    #if metadata is None:
+    #    return self.client.upload_file(local_file, bucket, key)
+
+    meta_dict = {'Metadata' : {}}
+    if isinstance(metadata, str):
+        # Parse string or check if file exists
+         meta_dict['Metadata'] = json.loads(metadata)
+    elif isinstance(metadata, dict):
+        #TODO assert it's a flat dict
+        meta_dict['Metadata'] = metadata
+    #self.add_required_metadata(meta_dict['Metadata'])
+
+    if md5:
+        meta_dict['Metadata']['ContentMD5'] = get_md5sum(local_file)
+        #meta_dict['ContentMD5'] = get_md5sum(local_file)
+    trans_config = TransferConfig(
+            use_threads=True,
+            max_concurrency=20,
+            multipart_threshold=1024*25,
+            multipart_chunksize=1024*25)
+    return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
 
 def parse_block_size(block_size_str):
     """Gets the divisor for number of bytes given string.
