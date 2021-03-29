@@ -17,7 +17,6 @@ import re
 import boto3
 import logging
 import multiprocessing
-import pdb
 
 from boto3.s3.transfer import TransferConfig
 if __package__ is None or __package__ == "":
@@ -42,7 +41,6 @@ class Session(object):
 
         config.configure_environment(endpoint_url, credentials_loc, default_bucket)
         self.client = self.get_session()
-        pdb.set_trace()
 
     def get_session(self, endpoint_url=None):
         """Gets a boto3 session client.
