@@ -292,8 +292,12 @@ class Session(object):
         if _dict is None:
             return
         if "uploading_account" not in _dict:
-            username = os.getlogin()
-            _dict["uploading_account"] = username
+            try:
+                # Failure can occur when running on scheduling system
+                username = os.getlogin()
+                _dict["uploading_account"] = username
+            except:
+                logging.warning('Cannot access username')
         if "institution" not in _dict:
             _dict["institution"] = "NCAR"
 
@@ -317,7 +321,10 @@ class Session(object):
         meta_dict = {'Metadata' : {}}
         if isinstance(metadata, str):
             # Parse string or check if file exists
-             meta_dict['Metadata'] = json.loads(metadata)
+            try:
+                meta_dict['Metadata'] = json.loads(metadata)
+            except:
+                pass
         elif isinstance(metadata, dict):
             #TODO assert it's a flat dict
             meta_dict['Metadata'] = metadata
@@ -393,6 +400,7 @@ class Session(object):
             key = key_prefix + _file
 
             metadata_str = None
+            print(_file)
             if metadata is not None:
                 metadata_str = func(_file)
 
@@ -402,11 +410,11 @@ class Session(object):
                 try:
                     p = multiprocessing.Process(
                             target=self.upload_object,
-                            args=(bucket,_file,key,metadata_str ))
+                            args=(_file, key,metadata_str, bucket ))
                     p.start()
-                    p.join()
                 except:
-                    self.upload_object(_file,key,bucket=bucket,metadata=metadata_str)
+                    self.upload_object(_file,key,metadata,bucket)
+
 
     def interpret_metadata_str(self, metadata):
         """Determine what metadata string is,
@@ -523,39 +531,6 @@ def exit_session(error):
         exit(1)
 
 
-def upload_object(self, local_file, key, bucket, metadata=None, md5=False):
-    """Uploads files to object store.
-
-    Args:
-        local_file (str): Filename of local file.
-        key (str): Name of s3 object key.
-        metadata (dict, str): dict or string representing key/value pairs.
-        bucket (str) : Name of s3 bucket.
-
-    Returns:
-        None
-    """
-    #if metadata is None:
-    #    return self.client.upload_file(local_file, bucket, key)
-
-    meta_dict = {'Metadata' : {}}
-    if isinstance(metadata, str):
-        # Parse string or check if file exists
-         meta_dict['Metadata'] = json.loads(metadata)
-    elif isinstance(metadata, dict):
-        #TODO assert it's a flat dict
-        meta_dict['Metadata'] = metadata
-    #self.add_required_metadata(meta_dict['Metadata'])
-
-    if md5:
-        meta_dict['Metadata']['ContentMD5'] = get_md5sum(local_file)
-        #meta_dict['ContentMD5'] = get_md5sum(local_file)
-    trans_config = TransferConfig(
-            use_threads=True,
-            max_concurrency=20,
-            multipart_threshold=1024*25,
-            multipart_chunksize=1024*25)
-    return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
 
 def parse_block_size(block_size_str):
     """Gets the divisor for number of bytes given string.
