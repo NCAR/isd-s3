@@ -213,7 +213,7 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
-        return self.client.head_object(Bucket=bucket, Key=key)['Metadata']
+        return self.client.head_object(Bucket=bucket, Key=key)#['Metadata']
 
     def replace_metadata(self, key, bucket=None, metadata=None):
         """Copies files to object store.
@@ -302,7 +302,7 @@ class Session(object):
             _dict["institution"] = "NCAR"
 
 
-    def upload_object(self, local_file, key, metadata=None, bucket=None, md5=False):
+    def upload_object(self, local_file, key, metadata=None, bucket=None, md5=False, verify=True):
         """Uploads files to object store.
 
         Args:
@@ -331,7 +331,7 @@ class Session(object):
         self.add_required_metadata(meta_dict['Metadata'])
 
         if md5:
-            meta_dict['Metadata']['ContentMD5'] = get_md5sum(local_file)
+            meta_dict['Metadata']['Content-MD5'] = get_md5sum(local_file)
             #meta_dict['ContentMD5'] = get_md5sum(local_file)
         trans_config = TransferConfig(
                 use_threads=True,
@@ -339,7 +339,12 @@ class Session(object):
                 multipart_threshold=1024*25,
                 multipart_chunksize=1024*25)
 
-        return self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
+        ret = self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
+        if verify:
+            etag = calculate_s3_etag(local_file)
+            meta = self.get_metadata(key, bucket=bucket)
+            assert etag==meta['ETag']
+        return ret
 
     def get_filelist(self, local_dir, recursive=False, ignore=[]):
         """Returns local filelist.
@@ -560,6 +565,24 @@ def parse_block_size(block_size_str):
     base_divisor = units[unit]
     divisor = base_divisor * number
     return divisor
+
+def calculate_s3_etag(file_path, chunk_size=1024*25):
+    import hashlib
+    md5s = []
+
+    with open(file_path, 'rb') as fp:
+        while True:
+            data = fp.read(chunk_size)
+            if not data:
+                break
+            md5s.append(hashlib.md5(data))
+
+    if len(md5s) == 1:
+        return '"{}"'.format(md5s[0].hexdigest())
+
+    digests = b''.join(m.digest() for m in md5s)
+    digests_md5 = hashlib.md5(digests)
+    return '"{}-{}"'.format(digests_md5.hexdigest(), len(md5s))
 
 def get_md5sum(local_file):
     import hashlib
