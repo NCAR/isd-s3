@@ -335,15 +335,28 @@ class Session(object):
             #meta_dict['ContentMD5'] = get_md5sum(local_file)
         trans_config = TransferConfig(
                 use_threads=True,
-                max_concurrency=20,
-                multipart_threshold=1024*25,
-                multipart_chunksize=1024*25)
+                max_concurrency=10,
+                multipart_threshold=1024*1024*25,
+                multipart_chunksize=1024*1024*25)
 
-        ret = self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
-        if verify:
-            etag = calculate_s3_etag(local_file)
-            meta = self.get_metadata(key, bucket=bucket)
-            assert etag==meta['ETag']
+        success = False
+        etag = calculate_s3_etag(local_file)
+        retry = 0
+        max_retries = 4
+        while not success and retry < max_retries:
+            ret = self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
+            if verify:
+                meta = self.get_metadata(key, bucket=bucket)
+                print(etag)
+                print(meta['ETag'])
+                if etag == meta['ETag']:
+                    success = True
+                else:
+                    retry += 1
+                    logging.info('Etag doesn\'t match. Retrying')
+        if retry == max_retries:
+            raise ISD_S3_Exception('ETag verification failed on upload')
+
         return ret
 
     def get_filelist(self, local_dir, recursive=False, ignore=[]):
@@ -566,7 +579,7 @@ def parse_block_size(block_size_str):
     divisor = base_divisor * number
     return divisor
 
-def calculate_s3_etag(file_path, chunk_size=1024*25):
+def calculate_s3_etag(file_path, chunk_size=1024*1024*25):
     import hashlib
     md5s = []
 
