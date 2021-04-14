@@ -117,11 +117,6 @@ def _get_parser():
             aliases=['dl'],
             help='Delete objects',
             description='Delete objects')
-   # del_parser.add_argument('--key', '-k',
-   #         type=str,
-   #         metavar='<key>',
-   #         required=True,
-   #         help="Object key to delete")
     del_parser.add_argument('keys',
             type=str,
             nargs='+',
@@ -129,6 +124,29 @@ def _get_parser():
             default=[],
             help="keys to delete")
     del_parser.add_argument('--bucket', '-b',
+            type=str,
+            metavar='<bucket>',
+            required=False,
+            help="Bucket from which to delete")
+
+    del_mult_parser = actions_parser.add_parser("delete_mult",
+            aliases=['dm'],
+            help='Delete multiple objects',
+            description='Delete multiple objects')
+    del_mult_parser.add_argument('--prefix',
+            type=str,
+            metavar='<prefix to delete>',
+            required=True,
+            help="Prefix to delete")
+    del_mult_parser.add_argument('--recursive',
+            action='store_true',
+            required=False,
+            help="Recursively delete from prefix")
+    del_mult_parser.add_argument('--dry_run', '-dr',
+            action='store_true',
+            required=False,
+            help="Does not delete files.")
+    del_mult_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
             required=False,
@@ -402,6 +420,7 @@ def _get_action(obj, command):
             "cp" : 'copy_object',
             "mv" : 'move_object',
             "dl" : 'delete',
+            "dm" : 'delete_mult',
             "du" : 'disk_usage',
             "upload_mult" : 'upload_mult_objects',
             "um" : 'upload_mult_objects'
@@ -529,7 +548,7 @@ def main(*args_list):
     if args.s3_url is None and config.get_s3_url() is None:
         args.s3_url = config.get_default_environment()['s3_url']
     if args.loglevel is not None:
-        level = config.get_log_levels()[args.loglevel.lower()]
+        level = getattr(logging, args.loglevel.upper())
         logger.setLevel(level)
 
 

@@ -181,12 +181,13 @@ class Session(object):
 
         return contents
 
-    def regex_filter(self, contents, regex_str):
+    def regex_filter(self, contents, regex_str, exclude=0):
         """Filters contents using regular expression.
 
         Args:
             contents (list): response 'Contents' objects
             regex_str (str): regular expression string
+            exclude (int): number of characters to exclude from start
 
         Returns:
             (list) Contents objects.
@@ -195,7 +196,10 @@ class Session(object):
         filtered_objects = []
         regex = re.compile(regex_str)
         for _object in contents:
-            match = regex.match(_object['Key'])
+            match_against = _object['Key']
+            if exclude > 0:
+                match_against = match_against[exclude:]
+            match = regex.match(match_against)
             if match is not None:
                 filtered_objects.append(_object)
 
@@ -492,19 +496,27 @@ class Session(object):
         bucket = self.get_bucket(bucket)
         for key in keys:
             if dry_run:
-                logging.info('deleting ' + k)
+                logging.info('deleting ' + key)
+                print('deleting ' + key)
             else:
                 self.client.delete_object(Bucket=bucket, Key=key)
 
-    def delete_mult(self, bucket=None, obj_regex=None, dry_run=False, prefix=""):
+    def delete_mult(self, bucket=None, prefix="", obj_regex=None, dry_run=False, recursive=False):
         """delete objects where keys match regex.
 
         Args:
             bucket (str) : Name of s3 bucket.
         """
         bucket = self.get_bucket(bucket)
-        all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True, prefix="")
-        matching_keys = []
+        if recursive:
+            assert obj_regex is None
+            all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True, prefix=prefix)
+        else:
+            all_objects = self.list_objects(bucket=bucket, regex=obj_regex, prefix=prefix)
+            regex = '^[^/]+$'
+            all_objects = self.regex_filter(all_objects, regex, exclude= len(prefix))
+            all_keys = list(map(lambda x: x['Key'], all_objects))
+
         self.delete(bucket=bucket, keys=all_keys, dry_run=dry_run)
 
     def search_metadata(self, bucket=None, obj_regex=None, metadata_key=None):
