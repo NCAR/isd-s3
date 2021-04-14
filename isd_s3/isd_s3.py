@@ -364,7 +364,7 @@ class Session(object):
         return ret
 
     def get_filelist(self, local_dir, recursive=False, ignore=[]):
-        """Returns local filelist.
+        """Returns local filelist as a list of (fullpath, localpath) pairs.
 
         Args:
             local_dir (str) [REQUIRED]: local directory to scan
@@ -384,7 +384,7 @@ class Session(object):
                         ignore_cur_file=True
                         break
                 if not ignore_cur_file:
-                    filelist.append(full_filename)
+                    filelist.append((full_filename, _file))
             if not recursive:
                 return filelist
         return filelist
@@ -418,8 +418,8 @@ class Session(object):
         if metadata is not None:
             func = self._interpret_metadata_str(metadata)
         cpus = multiprocessing.cpu_count()
-        for _file in filelist:
-            key = key_prefix + _file
+        for (_file, localPath) in filelist:
+            key = key_prefix + localPath
 
             metadata_str = None
             print(_file)
@@ -432,10 +432,10 @@ class Session(object):
                 try:
                     p = multiprocessing.Process(
                             target=self.upload_object,
-                            args=(_file, key,metadata_str, bucket ))
+                            args=(_file, key, metadata_str, bucket ))
                     p.start()
                 except:
-                    self.upload_object(_file,key,metadata,bucket)
+                    self.upload_object(_file, key, metadata, bucket)
 
 
     def interpret_metadata_str(self, metadata):
