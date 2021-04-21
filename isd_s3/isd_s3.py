@@ -414,12 +414,20 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
+        if local_dir[-1] == '/':
+            local_dir = local_dir[:-1]
+        junk_path = os.path.dirname(local_dir)
+        if junk_path != '':
+            junk_path += '/'
+
         filelist = self.get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
         if metadata is not None:
             func = self._interpret_metadata_str(metadata)
         cpus = multiprocessing.cpu_count()
         for _file in filelist:
-            key = key_prefix + _file
+
+            key_without_preceding_path = _file.replace(junk_path,'')
+            key = key_prefix + key_without_preceding_path
 
             metadata_str = None
             print(_file)
@@ -427,7 +435,7 @@ class Session(object):
                 metadata_str = func(_file)
 
             if dry_run:
-                print('(Dry Run) Uploading :'+_file+" to "+bucket+'/'+key)
+                print('(Dry Run) Uploading: '+_file+" to "+bucket+'/'+key)
             else:
                 try:
                     p = multiprocessing.Process(
