@@ -77,7 +77,7 @@ def set_credentials_file(credentials):
 
 def set_default_bucket(default_bucket):
     if default_bucket is not None:
-        os.environ[ISD_S3_DEFAULT_BUCKET] = default_bucket
+        os.environ[ISD_S3_DEFAULT_BUCKET] = remove_trailing_slash(default_bucket)
         logger.info('Default bucket set to {}'.format(default_bucket))
 
 def get_s3_url():
@@ -94,3 +94,8 @@ def get_default_bucket():
     if ISD_S3_DEFAULT_BUCKET in os.environ:
         return os.environ[ISD_S3_DEFAULT_BUCKET]
     return None
+
+def remove_trailing_slash(path):
+    if path[-1] == '/':
+        return path[:-1]
+    return path

@@ -64,6 +64,14 @@ class Session(object):
 
 
         session = boto3.session.Session()
+        s3_protocol_identifier = 's3://'
+        if endpoint_url.startswith(s3_protocol_identifier):
+            bucket = endpoint_url.split(s3_protocol_identifier)[1]
+            config.set_default_bucket(bucket)
+            return session.client(
+                    service_name='s3',
+                    )
+
         return session.client(
                 service_name='s3',
                 endpoint_url=endpoint_url
@@ -351,13 +359,13 @@ class Session(object):
             ret = self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
             if verify:
                 meta = self.get_metadata(key, bucket=bucket)
-                print(etag)
-                print(meta['ETag'])
                 if etag == meta['ETag']:
                     success = True
                 else:
                     retry += 1
                     logging.info('Etag doesn\'t match. Retrying')
+                    print(etag)
+                    print(meta['ETag'])
         if retry == max_retries:
             raise ISD_S3_Exception('ETag verification failed on upload')
 
@@ -414,8 +422,11 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
-        if local_dir[-1] == '/':
-            local_dir = local_dir[:-1]
+        #if local_dir[-1] == '/':
+        #    local_dir = local_dir[:-1]
+        if local_dir[-1] != '/':
+            local_dir = '/'
+
         junk_path = os.path.dirname(local_dir)
         if junk_path != '':
             junk_path += '/'
