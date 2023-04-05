@@ -65,7 +65,7 @@ def configure_logging_from_file(ini_file=None):
     LOG_SECTION = 'logging'
 
     logpath = _cfg.get(LOG_SECTION, 'logpath')
-    logpath = '/glade/u/home/rpconroy/repositories/isd-s3'
+    #logpath = '/glade/u/home/rpconroy/repositories/isd-s3'
     level = _cfg.get(LOG_SECTION, 'loglevel')
     dbgfile = _cfg.get(LOG_SECTION, 'dbgfile')
     dbgfmt = _cfg.get(LOG_SECTION, 'dbgfmt')
@@ -93,7 +93,7 @@ def configure_logging(logpath, logfile, dbgfile, loglevel, maxbytes, backupcount
                                 level=level)
         else:
             # Set up standard log file handler.
-            handler = RotatingFileHandler(logpath+'/'+logfile,
+            handler = GroupWriteRotatingFileHandler(logpath+'/'+logfile,
                                           maxBytes=maxbytes,
                                           backupCount=backupcount)
             formatter = logging.Formatter(logfmt)
@@ -105,6 +105,14 @@ def configure_logging(logpath, logfile, dbgfile, loglevel, maxbytes, backupcount
     #    # Send all warnings and error messages to stdout if above throws an exception.
         logging.basicConfig(level=logging.INFO)
         logger.warning("Logging configuration failed due to '"+str(e)+"'  All warnings and error messages will be directed to stdout.")
+
+class GroupWriteRotatingFileHandler(RotatingFileHandler):    
+    def _open(self):
+        prevumask=os.umask(0o002)
+        #os.fdopen(os.open('/path/to/file', os.O_WRONLY, 0600))
+        rtv=logging.handlers.RotatingFileHandler._open(self)
+        os.umask(prevumask)
+        return rtv
 
 if __name__ == '__main__':
     # For defaults use:

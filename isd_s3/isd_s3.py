@@ -17,6 +17,7 @@ import re
 import boto3
 import logging
 import multiprocessing
+import mimetypes
 
 from boto3.s3.transfer import TransferConfig
 if __package__ is None or __package__ == "":
@@ -69,12 +70,14 @@ class Session(object):
             bucket = endpoint_url.split(s3_protocol_identifier)[1]
             config.set_default_bucket(bucket)
             return session.client(
-                    service_name='s3',
+                    service_name='s3'
+                    #verify=False
                     )
 
         return session.client(
                 service_name='s3',
                 endpoint_url=endpoint_url
+                #verify=False
                 )
 
     def list_buckets(self, buckets_only=False):
@@ -351,6 +354,11 @@ class Session(object):
                 multipart_threshold=1024*1024*25,
                 multipart_chunksize=1024*1024*25)
 
+        content_type = get_content_type(local_file)
+        if content_type is not None:
+            meta_dict['ContentType'] = content_type
+            #meta_dict['ACL'] = "public-read"
+
         success = False
         etag = calculate_s3_etag(local_file)
         retry = 0
@@ -491,7 +499,7 @@ class Session(object):
             write_dir (str): directory to write file to.
 
         Returns:
-            None
+            dict : successful or not
         """
         if local_filename is None:
             local_filename = os.path.basename(key)
@@ -521,7 +529,7 @@ class Session(object):
                 self.client.delete_object(Bucket=bucket, Key=key)
 
     def delete_mult(self, bucket=None, prefix="", obj_regex=None, dry_run=False, recursive=False):
-        """delete objects where keys match regex.
+        """Delete objects where keys match regex or prefix.
 
         Args:
             bucket (str) : Name of s3 bucket.
@@ -633,6 +641,15 @@ def get_md5sum(local_file):
     content_md5 = hashlib.md5(open(local_file,'rb').read()).hexdigest()
     return content_md5
 
+def guess_content_type(filename):
+    """Based on the filename, guess content-type.
+    """
+    pass
+
 class ISD_S3_Exception(Exception):
     pass
 
+
+def get_content_type(filename):
+    """Get MIME type based on filename"""
+    return mimetypes.MimeTypes().guess_type(filename)[0]

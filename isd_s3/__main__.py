@@ -137,7 +137,9 @@ def _get_parser():
             type=str,
             metavar='<prefix to delete>',
             required=True,
-            help="Prefix to delete")
+            help="""Prefix to delete. For example:
+            --prefix '/path/to/dir/'
+            would delete all keys that start with that prefix.""")
     del_mult_parser.add_argument('--recursive',
             action='store_true',
             required=False,
@@ -145,7 +147,7 @@ def _get_parser():
     del_mult_parser.add_argument('--dry_run', '-dr',
             action='store_true',
             required=False,
-            help="Does not delete files.")
+            help="Does not delete files. This is used to test whether the correct files are being selected for deletion.")
     del_mult_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
@@ -171,12 +173,12 @@ def _get_parser():
             metavar='<local directory>',
             default='./',
             required=False,
-            help="Save to another directory, rather than current dir")
+            help="Save to another specified directory, rather than current working directory.")
     get_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
             required=False,
-            help="Bucket from which to pull object")
+            help="Bucket from which to pull object.")
 
     upload_mult_parser = actions_parser.add_parser("upload_mult",
             aliases=['um'],
@@ -191,7 +193,7 @@ def _get_parser():
             type=str,
             metavar='<directory>',
             required=True,
-            help="Directory to search for files.")
+            help="Directory to search for files which will be uploaded.")
     upload_mult_parser.add_argument('--key_prefix', '-kp',
             type=str,
             metavar='<prefix>',
@@ -201,11 +203,11 @@ def _get_parser():
     upload_mult_parser.add_argument('--recursive', '-r',
             action='store_true',
             required=False,
-            help="recursively search directory")
+            help="Recursively search directory and uploads all found files. Preserves directory structure.")
     upload_mult_parser.add_argument('--dry_run', '-dr',
             action='store_true',
             required=False,
-            help="Does not upload files.")
+            help="Does not upload files. This is used to test whether the correct files are being selected for upload.")
     upload_mult_parser.add_argument('--ignore', '-i',
             type=str,
             metavar='<ignore str>',
