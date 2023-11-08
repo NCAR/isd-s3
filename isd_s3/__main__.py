@@ -602,7 +602,7 @@ def call_action_from_dict(args_dict):
 
     return result
 
-if __name__ == "__main__":
+def pipmain():
     #from_pipe = not os.isatty(sys.stdin.fileno())
     from_pipe = select.select([sys.stdin,],[],[],0.0)[0]
     if len(sys.argv) > 1:
@@ -617,5 +617,9 @@ if __name__ == "__main__":
        # call_action_from_dict(json_input)
     else:
         main(*sys.argv[1:])
+
+
+if __name__ == "__main__":
+    pipmain()
 
 
