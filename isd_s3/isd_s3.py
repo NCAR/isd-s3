@@ -258,8 +258,8 @@ class Session(object):
         Returns:
             None
         """
-        self.copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None)
-        self.delete([key], bucket=source_bucket)
+        self.copy_object(source_key, dest_key, source_bucket=source_bucket, dest_bucket=dest_bucket, metadata=metadata)
+        self.delete([source_key], bucket=source_bucket)
 
     def copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
         """Copies objects to new key or bucket.

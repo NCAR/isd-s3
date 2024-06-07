@@ -478,6 +478,7 @@ def do_action(args):
     args_dict = args.__dict__
     _remove_common_args(args_dict)
 
+
     return function(**args_dict)
 
 def _pretty_print(struct, pretty_print=True):
