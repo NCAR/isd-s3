@@ -244,22 +244,47 @@ class Session(object):
         bucket = self.get_bucket(bucket)
         return self.copy_object(key, bucket, key, bucket, metadata)
 
-    def move_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
+
+    def move_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None, dry_run=False):
         """Moves object to new key. This will overwrite an object the new key already exists.
 
 
         Args:
-            source_key (str): key of object to be copied.
+            source_key (str): key of object or prefix to be copied.
             dest_key (str): Name of new s3 object key.
             source_bucket (str): bucket of key
             dest_bucket (str) : Name of s3 bucket.
             metadata (dict, str): dict or string representing key/value pairs.
+            dry_run (bool): Do not execute, but print expected results.
 
         Returns:
             None
         """
+        source_bucket = self.get_bucket(source_bucket)
+        if dest_bucket is None:
+            dest_bucket = source_bucket
+        keys = self.list_objects(prefix=source_key, bucket=source_bucket, keys_only=True)
+        if len(keys) == 0:
+            raise ValueError(f'key {source_key} does not exist')
+        if len(keys) > 1:
+            old_prefix = source_key
+            new_prefix = dest_key
+            for k in keys:
+                # Remove old 'directory' and replace with new
+                new_key = new_prefix + k.replace(old_prefix, '')
+                if dry_run:
+                    print(f'copying {source_bucket}/{k} to {dest_bucket}/{new_key}')
+                    continue
+                self.copy_object(k, new_key, source_bucket=source_bucket, dest_bucket=dest_bucket, metadata=metadata)
+                self.delete([k], bucket=source_bucket)
+            return None
+
+        if dry_run:
+            print(f'copying {source_bucket}/{source_key} to {dest_bucket}/{dest_key}')
+            return None
         self.copy_object(source_key, dest_key, source_bucket=source_bucket, dest_bucket=dest_bucket, metadata=metadata)
         self.delete([source_key], bucket=source_bucket)
+        return None
 
     def copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
         """Copies objects to new key or bucket.

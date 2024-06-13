@@ -270,6 +270,10 @@ def _get_parser():
             metavar='<dict str>',
             required=False,
             help="Provide metadata for an object. Otherwise deletes metadata")
+    move_parser.add_argument('--dry_run', '-dr',
+            action='store_true',
+            required=False,
+            help="Does not delete files. This is used to test whether the correct files are being selected for move.")
 
     copy_parser = actions_parser.add_parser("copy_object",
             aliases=['cp'],
