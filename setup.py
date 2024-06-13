@@ -1,7 +1,6 @@
 import sys
 from setuptools import find_packages, setup
 
-import isd_s3
 
 if sys.version_info < (3, 1):
     raise NotImplementedError(
@@ -16,7 +15,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="ncar-isd-s3",
-    version=isd_s3.__version__,  # See semantic versioning at https://semver.org/
+    version='1.1.2',  # See semantic versioning at https://semver.org/
     author="NCAR RDA Team",
     author_email="rdahelp@ucar.edu",
     description="NCAR ISD S3 object storage utility",
@@ -41,5 +40,5 @@ setup(
         "Intended Audience :: Developers"
     ],
     python_requires='>=3.1',
-    entry_points={"console_scripts": ["isd_s3=isd_s3.__main__:main"]}
+    entry_points={"console_scripts": ["isd_s3=isd_s3.__main__:pipmain"]}
 )

@@ -14,5 +14,6 @@ Install with `pip install ncar-isd-s3`
 You can then import the module `isd_s3`.  For example:
 ```
 from isd_s3 import isd_s3
-isd_s3.list_buckets()
+session = isd_s3.Session()
+session.list_buckets()
 ```
