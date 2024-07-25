@@ -243,16 +243,16 @@ def _get_parser():
 
     move_parser = actions_parser.add_parser("move_object",
             aliases=['mv'],
-            help='move object to new key',
+            help='move object to new key or move all keys under prefix to new prefix',
             description='move object')
     move_parser.add_argument('--source_key', '-k',
             type=str,
-            metavar='<source key>',
+            metavar='<source key/source prefix>',
             required=True,
             help="Object key to move")
     move_parser.add_argument('--dest_key', '-dk',
             type=str,
-            metavar='<new key>',
+            metavar='<new key/new prefix>',
             required=True,
             help="Object key to move")
     move_parser.add_argument('--source_bucket', '-b',
