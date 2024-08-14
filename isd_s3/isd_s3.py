@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class Session(object):
 
-    def __init__(self, endpoint_url=None, credentials_loc=None, default_bucket=None):
+    def __init__(self, endpoint_url=None, credentials_loc=None, default_bucket=None, verify=True):
         """Session constructor
 
         Args:
@@ -41,9 +41,9 @@ class Session(object):
 
 
         config.configure_environment(endpoint_url, credentials_loc, default_bucket)
-        self.client = self.get_session()
+        self.client = self.get_session(verify=verify)
 
-    def get_session(self, endpoint_url=None):
+    def get_session(self, endpoint_url=None, verify=True):
         """Gets a boto3 session client.
         This should generally be executed after module load.
 
@@ -70,14 +70,14 @@ class Session(object):
             bucket = endpoint_url.split(s3_protocol_identifier)[1]
             config.set_default_bucket(bucket)
             return session.client(
-                    service_name='s3'
-                    #verify=False
+                    service_name='s3',
+                    verify=verify
                     )
 
         return session.client(
                 service_name='s3',
-                endpoint_url=endpoint_url
-                #verify=False
+                endpoint_url=endpoint_url,
+                verify=verify
                 )
 
     def list_buckets(self, buckets_only=False):

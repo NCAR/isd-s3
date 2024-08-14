@@ -95,6 +95,10 @@ def _get_parser():
             required=False,
             metavar='<credentials file>',
             help="Location of s3 credentials. See https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html")
+    parser.add_argument('--no-verify_certs', '-nv',
+            action='store_true',
+            required=False,
+            help="Does not check for a valid SSL certificate.")
 
     # Mutually exclusive commands
     actions_parser = parser.add_subparsers(title='Actions',
@@ -446,7 +450,8 @@ def get_global_args():
             'command',
             'default_bucket',
             'loglevel',
-            'credentials_file']
+            'credentials_file',
+            'no_verify_certs']
     return global_args
 
 def _remove_common_args(_dict):
@@ -473,7 +478,7 @@ def do_action(args):
         function
     """
     # Init Session
-    session = isd_s3.Session(endpoint_url=args.s3_url, credentials_loc=args.credentials_file)
+    session = isd_s3.Session(endpoint_url=args.s3_url, credentials_loc=args.credentials_file, verify=not args.no_verify_certs)
 
     # Get function corresponding with command
     function = _get_action(session, args.command)
@@ -547,6 +552,7 @@ def main(*args_list):
 
     noprint = args.noprint
     pp = args.prettyprint
+    verify_certs = not args.no_verify_certs
 
     if args.use_local_config is True:
         # Default loacation is ~/.aws/credentials
