@@ -266,7 +266,7 @@ class Session(object):
         keys = self.list_objects(prefix=source_key, bucket=source_bucket, keys_only=True)
         if len(keys) == 0:
             raise ValueError(f'key {source_key} does not exist')
-        if len(keys) > 1:
+        if len(keys) >= 1:
             old_prefix = source_key
             new_prefix = dest_key
             for k in keys:
