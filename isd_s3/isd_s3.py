@@ -169,8 +169,8 @@ class Session(object):
         bucket = self.get_bucket(bucket)
 
         if ls:
-            if len(prefix) > 0 and prefix[-1] != '/':
-                prefix += '/'
+            #if len(prefix) > 0 and prefix[-1] != '/':
+            #    prefix += '/'
             return self.directory_list(bucket, prefix, keys_only)
 
         contents = []
