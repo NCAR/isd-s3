@@ -166,6 +166,7 @@ class Session(object):
         Returns:
             (list) : list of objects in given bucket
         """
+        bucket = None
         bucket = self.get_bucket(bucket)
 
         if ls:
@@ -189,6 +190,11 @@ class Session(object):
             contents = self.regex_filter(contents, regex)
         if keys_only:
             return list(map(lambda x: x['Key'], contents))
+
+        # Remove 'directory' objects
+        for o in contents:
+            if o['Key'][-1] == '/':
+                contents.remove(o)
 
         return contents
 
@@ -354,7 +360,10 @@ class Session(object):
         Returns:
             None
         """
-        bucket = self.get_bucket(bucket)
+        # PUT THIS BACK IN WHEN HUA FIXES CODE
+        #bucket = self.get_bucket(bucket)
+        bucket = self.get_bucket(None)
+
         #if metadata is None:
         #    return self.client.upload_file(local_file, bucket, key)
 

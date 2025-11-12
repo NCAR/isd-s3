@@ -106,7 +106,7 @@ def configure_logging(logpath, logfile, dbgfile, loglevel, maxbytes, backupcount
         logging.basicConfig(level=logging.INFO)
         logger.warning("Logging configuration failed due to '"+str(e)+"'  All warnings and error messages will be directed to stdout.")
 
-class GroupWriteRotatingFileHandler(RotatingFileHandler):    
+class GroupWriteRotatingFileHandler(RotatingFileHandler):
     def _open(self):
         prevumask=os.umask(0o002)
         #os.fdopen(os.open('/path/to/file', os.O_WRONLY, 0600))
@@ -117,7 +117,8 @@ class GroupWriteRotatingFileHandler(RotatingFileHandler):
 if __name__ == '__main__':
     # For defaults use:
     # config.configure_logging(**config.get_default_log_config())
-    rda_config = '/glade/u/home/rdadata/.aws/isd_s3_config'
+    rda_config = '/glade/u/home/gdexdata/.aws/isd_s3_config'
+    #rda_config = '/glade/u/home/rpconroy/repositories/isd-s3/examples/pyinstaller/isd_s3_config.new.ini'
     configure_logging_from_file(rda_config)
     config.configure_environment_from_file(rda_config)
     from_pipe = not os.isatty(sys.stdin.fileno())

@@ -31,7 +31,7 @@ def read_config_parser(filename):
 def get_default_environment():
     """Returns the default environment as a dict"""
     return {
-            's3_url' : 'https://stratus.ucar.edu',
+            's3_url' : 'https://boreas.hpc.ucar.edu:6443',
             'credentials' : None, # defaults to ~/.aws/credentials
             'bucket' : None
           }
