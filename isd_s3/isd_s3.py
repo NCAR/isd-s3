@@ -525,25 +525,53 @@ class Session(object):
             return metadata_func
 
 
-    def get_object(self, key, bucket=None, local_dir='./', local_filename=None):
+    def get_object(self, key, bucket=None, local_dir='./', local_filename=None, recursive=False, dry_run=False):
         """Get's object from store.
 
         Writes to local dir
 
         Args:
-            key (str) [REQUIRED]: Name of s3 object key.
+            key (str) [REQUIRED]: Name of s3 object key. If recursive, this is a prefix.
             bucket (str): Name of s3 bucket.
-            write_dir (str): directory to write file to.
+            local_dir (str): directory to write file(s) to.
+            local_filename (str): Save under this name instead of the key's basename.
+                                  Ignored if recursive.
+            recursive (bool): Download every object under the prefix `key`,
+                              preserving the structure below the prefix.
+            dry_run (bool): Do not download, but print expected results.
 
         Returns:
             dict : successful or not
         """
         bucket = self.get_bucket(bucket)
+        if recursive:
+            return self._get_objects_recursive(key, bucket, local_dir, dry_run)
         if local_filename is None:
             local_filename = os.path.basename(key)
         local_filename = os.path.join(local_dir, local_filename)
         self.client.download_file(bucket, key, local_filename)
         return {'result' : 'successful'}
+
+    def _get_objects_recursive(self, prefix, bucket, local_dir, dry_run=False):
+        """Downloads all objects under prefix into local_dir."""
+        # Match 'directories' only, so 'foo' does not also match 'foobar/x'
+        if prefix != '' and not prefix.endswith('/'):
+            prefix += '/'
+        keys = self.list_objects(prefix=prefix, bucket=bucket, keys_only=True)
+        # Skip 'directory' placeholder objects
+        keys = [k for k in keys if not k.endswith('/')]
+        if len(keys) == 0:
+            raise ValueError(f'no keys found under prefix {prefix}')
+        for k in keys:
+            local_path = os.path.join(local_dir, k[len(prefix):])
+            if dry_run:
+                print(f'downloading {bucket}/{k} to {local_path}')
+                continue
+            parent = os.path.dirname(local_path)
+            if parent != '':
+                os.makedirs(parent, exist_ok=True)
+            self.client.download_file(bucket, k, local_path)
+        return {'result' : 'successful', 'count' : len(keys)}
 
     def delete(self, keys=[], bucket=None, dry_run=False):
         """Deletes Key from given bucket.

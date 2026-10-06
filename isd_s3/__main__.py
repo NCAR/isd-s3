@@ -166,7 +166,7 @@ def _get_parser():
             type=str,
             metavar='<key>',
             required=True,
-            help="Object key to pull")
+            help="Object key to pull (prefix if --recursive)")
     get_parser.add_argument('--local_filename', '-lf',
             type=str,
             metavar='<local filename>',
@@ -183,6 +183,14 @@ def _get_parser():
             metavar='<bucket>',
             required=False,
             help="Bucket from which to pull object.")
+    get_parser.add_argument('--recursive', '-r',
+            action='store_true',
+            required=False,
+            help="Treat --key as a prefix and download all objects under it, preserving structure below the prefix.")
+    get_parser.add_argument('--dry_run', '-dr',
+            action='store_true',
+            required=False,
+            help="Does not download files. This is used to test whether the correct files are being selected.")
 
     upload_mult_parser = actions_parser.add_parser("upload_mult",
             aliases=['um'],
