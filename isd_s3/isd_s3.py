@@ -14,6 +14,7 @@ import sys
 import os
 import json
 import re
+from pathlib import Path
 import boto3
 import logging
 import multiprocessing
@@ -360,6 +361,9 @@ class Session(object):
         Returns:
             None
         """
+        local_path = Path(local_file)
+        if local_path.is_dir():
+            return self.upload_mult_objects(local_file, key, bucket=bucket, recursive=True, metadata=metadata )
         # PUT THIS BACK IN WHEN HUA FIXES CODE
         #bucket = self.get_bucket(bucket)
         bucket = self.get_bucket(None)
@@ -467,15 +471,14 @@ class Session(object):
         #if local_dir[-1] == '/':
         #    local_dir = local_dir[:-1]
         if local_dir[-1] != '/':
-            local_dir = '/'
+            local_dir += '/'
 
         junk_path = os.path.dirname(local_dir)
-        if junk_path != '':
-            junk_path += '/'
+
 
         filelist = self.get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
         if metadata is not None:
-            func = self._interpret_metadata_str(metadata)
+            func = self.interpret_metadata_str(metadata)
         cpus = multiprocessing.cpu_count()
         for _file in filelist:
 
@@ -493,7 +496,7 @@ class Session(object):
                 try:
                     p = multiprocessing.Process(
                             target=self.upload_object,
-                            args=(_file, key,metadata_str, bucket ))
+                            args=(_file, key, metadata, bucket ))
                     p.start()
                 except:
                     self.upload_object(_file,key,metadata,bucket)
@@ -535,9 +538,10 @@ class Session(object):
         Returns:
             dict : successful or not
         """
+        bucket = self.get_bucket(bucket)
         if local_filename is None:
             local_filename = os.path.basename(key)
-        os.path.join(local_dir, local_filename)
+        local_filename = os.path.join(local_dir, local_filename)
         self.client.download_file(bucket, key, local_filename)
         return {'result' : 'successful'}
 
