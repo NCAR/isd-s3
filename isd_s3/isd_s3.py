@@ -19,14 +19,21 @@ import boto3
 import logging
 import multiprocessing
 import mimetypes
+from concurrent.futures import ThreadPoolExecutor
 
 from boto3.s3.transfer import TransferConfig
+from botocore.exceptions import ClientError
 if __package__ is None or __package__ == "":
     import config
 else:
     from . import config
 
 logger = logging.getLogger(__name__)
+
+# Max keys per S3 DeleteObjects request
+DELETE_BATCH_SIZE = 1000
+# Upper bound on concurrent worker threads for multi-object operations
+MAX_WORKERS = min(8, multiprocessing.cpu_count())
 
 class Session(object):
 
@@ -131,7 +138,7 @@ class Session(object):
 
 
 
-    def disk_usage(bucket=None, prefix="",regex=None,block_size='1MB'):
+    def disk_usage(self, bucket=None, prefix="",regex=None,block_size='1MB'):
         """Returns the disk usage for a set of objects.
 
         Args:
@@ -145,7 +152,7 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
-        contents = self.list_objects(bucket, prefix, regex=regex)
+        contents = self.list_objects(bucket=bucket, prefix=prefix, regex=regex)
         total = 0
         divisor = parse_block_size(block_size)
         for _object in contents:
@@ -167,37 +174,24 @@ class Session(object):
         Returns:
             (list) : list of objects in given bucket
         """
-        bucket = None
         bucket = self.get_bucket(bucket)
 
         if ls:
             #if len(prefix) > 0 and prefix[-1] != '/':
             #    prefix += '/'
-            return self.directory_list(bucket, prefix, keys_only)
+            return self.directory_list(bucket, prefix, keys_only=keys_only)
 
         contents = []
-
-        response = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix)
-        if 'Contents' not in response:
-            return []
-        contents.extend(response['Contents'])
-        while response['IsTruncated']:
-            response = self.client.list_objects_v2(
-                    Bucket=bucket,
-                    Prefix=prefix,
-                    ContinuationToken=response['NextContinuationToken'])
-            contents.extend(response['Contents'])
+        paginator = self.client.get_paginator('list_objects_v2')
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            contents.extend(page.get('Contents', []))
         if regex is not None:
             contents = self.regex_filter(contents, regex)
         if keys_only:
             return list(map(lambda x: x['Key'], contents))
 
         # Remove 'directory' objects
-        for o in contents:
-            if o['Key'][-1] == '/':
-                contents.remove(o)
-
-        return contents
+        return [o for o in contents if not o['Key'].endswith('/')]
 
     def regex_filter(self, contents, regex_str, exclude=0):
         """Filters contents using regular expression.
@@ -249,7 +243,10 @@ class Session(object):
             None
         """
         bucket = self.get_bucket(bucket)
-        return self.copy_object(key, bucket, key, bucket, metadata)
+        # An empty dict makes copy_object REPLACE (i.e. clear) the metadata
+        if metadata is None:
+            metadata = {}
+        return self.copy_object(key, key, source_bucket=bucket, dest_bucket=bucket, metadata=metadata)
 
 
     def move_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None, dry_run=False):
@@ -273,24 +270,20 @@ class Session(object):
         keys = self.list_objects(prefix=source_key, bucket=source_bucket, keys_only=True)
         if len(keys) == 0:
             raise ValueError(f'key {source_key} does not exist')
-        if len(keys) >= 1:
-            old_prefix = source_key
-            new_prefix = dest_key
-            for k in keys:
-                # Remove old 'directory' and replace with new
-                new_key = new_prefix + k.replace(old_prefix, '')
-                if dry_run:
-                    print(f'copying {source_bucket}/{k} to {dest_bucket}/{new_key}')
-                    continue
-                self.copy_object(k, new_key, source_bucket=source_bucket, dest_bucket=dest_bucket, metadata=metadata)
-                self.delete([k], bucket=source_bucket)
-            return None
-
-        if dry_run:
-            print(f'copying {source_bucket}/{source_key} to {dest_bucket}/{dest_key}')
-            return None
-        self.copy_object(source_key, dest_key, source_bucket=source_bucket, dest_bucket=dest_bucket, metadata=metadata)
-        self.delete([source_key], bucket=source_bucket)
+        old_prefix = source_key
+        new_prefix = dest_key
+        copied = []
+        for k in keys:
+            # Remove old 'directory' and replace with new
+            new_key = new_prefix + k.replace(old_prefix, '', 1)
+            if dry_run:
+                print(f'copying {source_bucket}/{k} to {dest_bucket}/{new_key}')
+                continue
+            self.copy_object(k, new_key, source_bucket=source_bucket, dest_bucket=dest_bucket, metadata=metadata)
+            copied.append(k)
+        # Only delete originals once everything has been copied
+        if copied:
+            self.delete(copied, bucket=source_bucket)
         return None
 
     def copy_object(self, source_key, dest_key, source_bucket=None, dest_bucket=None, metadata=None):
@@ -310,22 +303,24 @@ class Session(object):
         if dest_bucket is None:
             dest_bucket = source_bucket
 
-        if metadata is None:
-            return self.client.copy_object(Key=dest_key, Bucket=dest_bucket,
-                    CopySource={"Bucket": source_bucket, "Key": source_key})
-
-        meta_dict = {'Metadata' : None}
-        if isinstance(metadata, str):
-            # Parse string or check if file exists
-             meta_dict['Metadata'] = json.loads(metadata)
-        elif isinstance(metadata, dict):
+        extra_args = {}
+        if metadata is not None:
+            if isinstance(metadata, str):
+                metadata = json.loads(metadata)
             #TODO assert it's a flat dict
-            meta_dict['Metadata'] = metadata
+            extra_args = {'Metadata': metadata, 'MetadataDirective': 'REPLACE'}
 
+        copy_source = {"Bucket": source_bucket, "Key": source_key}
+        try:
             return self.client.copy_object(Key=dest_key, Bucket=dest_bucket,
-                    CopySource={"Bucket": source_bucket, "Key": source_key},
-                    Metadata=meta_dict,
-                    MetadataDirective="REPLACE")
+                    CopySource=copy_source, **extra_args)
+        except ClientError as e:
+            # copy_object is limited to 5GB. The managed copy uses multipart.
+            if e.response.get('Error', {}).get('Code') not in ('InvalidRequest', 'EntityTooLarge'):
+                raise
+            logger.info('Object too large for copy_object. Using multipart copy.')
+            self.client.copy(copy_source, dest_bucket, dest_key, ExtraArgs=extra_args or None)
+            return None
 
     def add_required_metadata(self, _dict):
         """Adds required metadata to dict.
@@ -397,22 +392,18 @@ class Session(object):
             meta_dict['ContentType'] = content_type
             #meta_dict['ACL'] = "public-read"
 
-        success = False
-        etag = calculate_s3_etag(local_file)
-        retry = 0
+        # Only pay for hashing the file if we are going to verify
+        etag = calculate_s3_etag(local_file) if verify else None
         max_retries = 4
-        while not success and retry < max_retries:
+        for attempt in range(max_retries):
             ret = self.client.upload_file(local_file, bucket, key, ExtraArgs=meta_dict, Config=trans_config)
-            if verify:
-                meta = self.get_metadata(key, bucket=bucket)
-                if etag == meta['ETag']:
-                    success = True
-                else:
-                    retry += 1
-                    logging.info('Etag doesn\'t match. Retrying')
-                    print(etag)
-                    print(meta['ETag'])
-        if retry == max_retries:
+            if not verify:
+                break
+            meta = self.get_metadata(key, bucket=bucket)
+            if etag == meta['ETag']:
+                break
+            logger.info("Etag doesn't match ({} != {}). Retrying".format(etag, meta['ETag']))
+        else:
             raise ISD_S3_Exception('ETag verification failed on upload')
 
         return ret
@@ -474,33 +465,48 @@ class Session(object):
             local_dir += '/'
 
         junk_path = os.path.dirname(local_dir)
-
+        if key_prefix is None:
+            key_prefix = ""
 
         filelist = self.get_filelist(local_dir=local_dir, recursive=recursive, ignore=ignore)
+        func = None
         if metadata is not None:
             func = self.interpret_metadata_str(metadata)
-        cpus = multiprocessing.cpu_count()
+
+        uploads = []
         for _file in filelist:
-
-            key_without_preceding_path = _file.replace(junk_path,'')
-            key = key_prefix + key_without_preceding_path
-
-            metadata_str = None
+            key = key_prefix + _file[len(junk_path):]
             print(_file)
-            if metadata is not None:
-                metadata_str = func(_file)
-
             if dry_run:
                 print('(Dry Run) Uploading: '+_file+" to "+bucket+'/'+key)
-            else:
-                try:
-                    p = multiprocessing.Process(
-                            target=self.upload_object,
-                            args=(_file, key, metadata, bucket ))
-                    p.start()
-                except:
-                    self.upload_object(_file,key,metadata,bucket)
+                continue
+            file_metadata = func(_file) if func is not None else None
+            uploads.append((_file, key, file_metadata))
 
+        def _upload(args):
+            _file, key, file_metadata = args
+            self.upload_object(_file, key, file_metadata, bucket)
+
+        failures = self._run_parallel(_upload, uploads)
+        if failures:
+            raise ISD_S3_Exception('{} of {} uploads failed'.format(len(failures), len(uploads)))
+
+    def _run_parallel(self, func, items):
+        """Runs func(item) for each item in a bounded thread pool.
+
+        Returns:
+            list of (item, exception) for the items that failed.
+        """
+        failures = []
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = [(item, executor.submit(func, item)) for item in items]
+            for item, future in futures:
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error('{} failed: {}'.format(item, e))
+                    failures.append((item, e))
+        return failures
 
     def interpret_metadata_str(self, metadata):
         """Determine what metadata string is,
@@ -562,6 +568,7 @@ class Session(object):
         keys = [k for k in keys if not k.endswith('/')]
         if len(keys) == 0:
             raise ValueError(f'no keys found under prefix {prefix}')
+        downloads = []
         for k in keys:
             local_path = os.path.join(local_dir, k[len(prefix):])
             if dry_run:
@@ -570,7 +577,11 @@ class Session(object):
             parent = os.path.dirname(local_path)
             if parent != '':
                 os.makedirs(parent, exist_ok=True)
-            self.client.download_file(bucket, k, local_path)
+            downloads.append((k, local_path))
+        failures = self._run_parallel(
+                lambda kp: self.client.download_file(bucket, kp[0], kp[1]), downloads)
+        if failures:
+            raise ISD_S3_Exception('{} of {} downloads failed'.format(len(failures), len(downloads)))
         return {'result' : 'successful', 'count' : len(keys)}
 
     def delete(self, keys=[], bucket=None, dry_run=False):
@@ -587,12 +598,20 @@ class Session(object):
             keys=[keys]
         assert len(keys) > 0
         bucket = self.get_bucket(bucket)
-        for key in keys:
-            if dry_run:
+        if dry_run:
+            for key in keys:
                 logging.info('deleting ' + key)
                 print('deleting ' + key)
-            else:
-                self.client.delete_object(Bucket=bucket, Key=key)
+            return
+        errors = []
+        for i in range(0, len(keys), DELETE_BATCH_SIZE):
+            batch = keys[i:i + DELETE_BATCH_SIZE]
+            response = self.client.delete_objects(
+                    Bucket=bucket,
+                    Delete={'Objects': [{'Key': k} for k in batch], 'Quiet': True})
+            errors.extend(response.get('Errors', []))
+        if errors:
+            raise ISD_S3_Exception('Failed to delete {} keys: {}'.format(len(errors), errors[:5]))
 
     def delete_mult(self, bucket=None, prefix="", obj_regex=None, dry_run=False, recursive=False):
         """Delete objects where keys match regex or prefix.
@@ -625,14 +644,15 @@ class Session(object):
         """
         bucket = self.get_bucket(bucket)
 
-        all_keys = self.list_objects(bucket, regex=obj_regex, keys_only=True)
-        matching_keys = []
-        for key in all_keys:
-            return_dict = self.get_metadata(bucket, key)
-            if metadata_key in return_dict.keys():
-                matching_keys.append(key)
+        all_keys = self.list_objects(bucket=bucket, regex=obj_regex, keys_only=True)
 
-        return matching_keys
+        def _has_key(key):
+            user_metadata = self.get_metadata(key, bucket=bucket).get('Metadata', {})
+            return metadata_key in user_metadata
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            has_key = list(executor.map(_has_key, all_keys))
+        return [key for key, found in zip(all_keys, has_key) if found]
 
     def __str__(self):
         mem_adr = super.__str__(self)
@@ -702,10 +722,13 @@ def calculate_s3_etag(file_path, chunk_size=1024*1024*25):
     digests_md5 = hashlib.md5(digests)
     return '"{}-{}"'.format(digests_md5.hexdigest(), len(md5s))
 
-def get_md5sum(local_file):
+def get_md5sum(local_file, chunk_size=1024*1024*25):
     import hashlib
-    content_md5 = hashlib.md5(open(local_file,'rb').read()).hexdigest()
-    return content_md5
+    md5 = hashlib.md5()
+    with open(local_file, 'rb') as fp:
+        for chunk in iter(lambda: fp.read(chunk_size), b''):
+            md5.update(chunk)
+    return md5.hexdigest()
 
 def guess_content_type(filename):
     """Based on the filename, guess content-type.
