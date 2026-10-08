@@ -177,7 +177,7 @@ def _get_parser():
             metavar='<local directory>',
             default='./',
             required=False,
-            help="Save to another specified directory, rather than current working directory.")
+            help="Save to another specified directory, rather than current working directory. With --recursive, files are written under this directory (created if needed).")
     get_parser.add_argument('--bucket', '-b',
             type=str,
             metavar='<bucket>',
@@ -186,7 +186,7 @@ def _get_parser():
     get_parser.add_argument('--recursive', '-r',
             action='store_true',
             required=False,
-            help="Treat --key as a prefix and download all objects under it, preserving structure below the prefix.")
+            help="Treat --key as a prefix and download all objects under it. The prefix itself is not recreated locally: paths below it are preserved and written directly into --local_dir (default: current directory).")
     get_parser.add_argument('--dry_run', '-dr',
             action='store_true',
             required=False,

@@ -539,11 +539,16 @@ class Session(object):
         Args:
             key (str) [REQUIRED]: Name of s3 object key. If recursive, this is a prefix.
             bucket (str): Name of s3 bucket.
-            local_dir (str): directory to write file(s) to.
+            local_dir (str): directory to write file(s) to (default: current directory).
             local_filename (str): Save under this name instead of the key's basename.
                                   Ignored if recursive.
-            recursive (bool): Download every object under the prefix `key`,
-                              preserving the structure below the prefix.
+            recursive (bool): Download every object under the prefix `key`.
+                              The prefix itself is not recreated locally: the
+                              structure below it is preserved and written
+                              directly into `local_dir`. E.g. key='data/2024'
+                              with object 'data/2024/sub/b.txt' creates
+                              '<local_dir>/sub/b.txt'. Pass a `local_dir` to
+                              keep downloads contained.
             dry_run (bool): Do not download, but print expected results.
 
         Returns:
